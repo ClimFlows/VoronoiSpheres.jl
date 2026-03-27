@@ -31,5 +31,5 @@ jobs:
   docs:
     uses: ClimFlows/.github/.github/workflows/docs.yml@main
     with: 
-      package: CFDomains
+      package: VoronoiSpheres
     secrets: inherit

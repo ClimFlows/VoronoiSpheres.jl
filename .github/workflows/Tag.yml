@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 
-jobs:
-  tag:
-    uses: ClimFlows/.github/.github/workflows/auto-tag.yml@main
-    secrets: inherit
+# jobs:
+#  tag:
+#    uses: ClimFlows/.github/.github/workflows/auto-tag.yml@main
+#    secrets: inherit
