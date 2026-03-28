@@ -24,13 +24,18 @@ import VoronoiSpheres.VoronoiOperators as Ops
 
 using Test
 
+macro bench(expr)
+    code = :( @benchmark $expr samples=100 )
+    return esc(code)
+end
+
 include("partial_derivative.jl")
 include("voronoi_operators.jl")
 
 include("zero_arrays.jl")
 include("voronoi.jl")
 
-choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
+choices = (precision = Float64, meshname = "uni.2deg.mesh.nc", tol=1e-3)
 
 reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
@@ -116,9 +121,9 @@ end
     @test ucov ≈ ucov2
 
     @info "Gradient of concrete array"
-    display(@benchmark $grad!($ucov2, nothing, $c) )
+    display(@bench $grad!($ucov2, nothing, $c) )
     @info "Gradient of lazy array"
-    display(@benchmark $grad!($ucov2, nothing, $c_) )
+    display(@bench $grad!($ucov2, nothing, $c_) )
 #    display(@code_native grad!(ucov2, nothing, c_))
 end
 
