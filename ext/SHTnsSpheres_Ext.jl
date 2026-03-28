@@ -1,10 +1,10 @@
 module SHTnsSpheres_Ext
 
     using SHTnsSpheres: SHTnsSphere
-    using CFDomains: CFDomains, HyperDiffusion, HVLayout
-    import CFDomains: hyperdiffusion!, hyperdiff_shell!
+    using VoronoiSpheres: VoronoiSpheres, HyperDiffusion, HVLayout
+    import VoronoiSpheres: hyperdiffusion!, hyperdiff_shell!
 
-    CFDomains.data_layout(::SHTnsSphere) = HVLayout(2)
+    VoronoiSpheres.data_layout(::SHTnsSphere) = HVLayout(2)
 
     function hyperdiff_shell!(sph::SHTnsSphere, ::HVLayout{2}, hd::HyperDiffusion{:vector_curl}, storage, coefs, ::Nothing)
         (; niter, nu), (; laplace, lmax) = hd, sph

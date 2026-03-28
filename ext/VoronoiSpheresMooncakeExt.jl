@@ -1,11 +1,11 @@
-module CFDomainsMooncakeExt
+module VoronoiSpheresMooncakeExt
 
 using Base: @propagate_inbounds as @prop
 
-using CFDomains.LazyExpressions: LazyExpression, lazy_expr
-import CFDomains.VoronoiOperators as Ops
-using CFDomains.VoronoiOperators: apply!, apply_adj!, apply_internal!, VoronoiOperator
-using CFDomains.VoronoiOperators: LazyDiagonalOp, WritableDVP
+using VoronoiSpheres.LazyExpressions: LazyExpression, lazy_expr
+import VoronoiSpheres.VoronoiOperators as Ops
+using VoronoiSpheres.VoronoiOperators: apply!, apply_adj!, apply_internal!, VoronoiOperator
+using VoronoiSpheres.VoronoiOperators: LazyDiagonalOp, WritableDVP
 
 import Mooncake
 using Mooncake: CoDual, NoTangent, NoPullback, NoFData, NoRData

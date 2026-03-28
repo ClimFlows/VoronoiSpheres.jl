@@ -1,10 +1,10 @@
 ```@meta
-CurrentModule = CFDomains
+CurrentModule = VoronoiSpheres
 ```
 
-# CFDomains
+# VoronoiSpheres
 
-Documentation for [CFDomains](https://github.com/ClimFlows/CFDomains.jl).
+Documentation for [VoronoiSpheres](https://github.com/ClimFlows/VoronoiSpheres.jl).
 
 ```@index
 ```
@@ -12,22 +12,22 @@ Documentation for [CFDomains](https://github.com/ClimFlows/CFDomains.jl).
 ## General
 
 ```@autodocs
-Modules = [CFDomains]
+Modules = [VoronoiSpheres]
 ```
 
 ## Vertical interpolation
 
 ```@autodocs
-Modules = [CFDomains.VerticalInterpolation]
+Modules = [VoronoiSpheres.VerticalInterpolation]
 ```
 
 ## Operators on Voronoi mesh
 
 ```@autodocs
-Modules = [CFDomains.Stencils, CFDomains.VoronoiOperators]
+Modules = [VoronoiSpheres.Stencils, VoronoiSpheres.VoronoiOperators]
 ```
 
 ## Virtual zero-filled arrays
 ```@autodocs
-Modules = [CFDomains.ZeroArrays]
+Modules = [VoronoiSpheres.ZeroArrays]
 ```

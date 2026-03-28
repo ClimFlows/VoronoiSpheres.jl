@@ -1,4 +1,5 @@
-module CFDomains
+module VoronoiSpheres
+
 using MutatingOrNot: void, Void
 using ManagedLoops: @loops, @unroll, @with
 using Random: MersenneTwister
@@ -205,9 +206,9 @@ allocate_field(val::Val, nq::Int, shell::Shell{nz}, F, mgr) where {nz} =
 Transposes `x_ij` and writes the result into `x_ji`, which may be `::Void`, in which case it is allocated.
 
 When working with shells it is sometimes useful to transpose fields for performance.
-CFDomains.transpose! can be specialized for specific managers, for instance:
+VoronoiSpheres.transpose! can be specialized for specific managers, for instance:
 
-    import CFDomains: transpose!, Void
+    import VoronoiSpheres: transpose!, Void
     using Strided: @strided
     function transpose!(x, ::MultiThread, y)
        @strided permutedims!(x, y, (2,1))

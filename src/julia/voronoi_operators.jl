@@ -5,7 +5,7 @@ using Base: @propagate_inbounds as @prop
 
 using ManagedLoops: @unroll, @vec, @with
 
-import CFDomains.Stencils
+import VoronoiSpheres.Stencils
 
 macro inb(expr)
     esc(:(@inbounds $expr))

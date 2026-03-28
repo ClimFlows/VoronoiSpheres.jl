@@ -18,10 +18,10 @@ SHTnsSpheres = "9e5c175a-5132-4517-85a1-2957ec255f89"
 SIMD = "fdea26ae-647d-5447-a871-4b548cad5224"
 
 [extensions]
-CFDomainsAdaptExt = ["Adapt"]
-CFDomainsForwardDiffExt = ["ForwardDiff"]
-CFDomainsMooncakeExt = ["Mooncake"]
-CFDomainsSIMDExt = ["ForwardDiff", "SIMD"]
+VoronoiSpheresAdaptExt = ["Adapt"]
+VoronoiSpheresForwardDiffExt = ["ForwardDiff"]
+VoronoiSpheresMooncakeExt = ["Mooncake"]
+VoronoiSpheresSIMDExt = ["ForwardDiff", "SIMD"]
 SHTnsSpheres_Ext = ["SHTnsSpheres"]
 
 [compat]
