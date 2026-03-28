@@ -1,14 +1,14 @@
-using CFDomains
+using VoronoiSpheres
 using Documenter
 
-DocMeta.setdocmeta!(CFDomains, :DocTestSetup, :(using CFDomains); recursive=true)
+DocMeta.setdocmeta!(VoronoiSpheres, :DocTestSetup, :(using VoronoiSpheres); recursive=true)
 
 makedocs(;
-    modules=[CFDomains],
+    modules=[VoronoiSpheres],
     authors="The ClimFlows contributors",
-    sitename="CFDomains.jl",
+    sitename="VoronoiSpheres.jl",
     format=Documenter.HTML(;
-        canonical="https://ClimFlows.github.io/CFDomains.jl",
+        canonical="https://ClimFlows.github.io/VoronoiSpheres.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ClimFlows/CFDomains.jl",
+    repo="github.com/ClimFlows/VoronoiSpheres.jl",
     devbranch="main",
 )

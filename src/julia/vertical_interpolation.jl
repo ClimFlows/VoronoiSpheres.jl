@@ -1,7 +1,7 @@
 module VerticalInterpolation
 
 using MutatingOrNot: void, Void
-using CFDomains: HVLayout
+using VoronoiSpheres: HVLayout
 
 """
     interpolated = interpolate!(mgr::LoopManager, domain::Shell, field, coord, refs, increasing)
