@@ -12,7 +12,6 @@ using DifferentiationInterface: Constant as Const
 
 using LoopManagers: SIMD, VectorizedCPU, MultiThread
 using ManagedLoops: @with, @vec, @unroll
-using SHTnsSpheres: SHTnsSphere
 using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 
 using CFDomains: CFDomains, transpose!, void
@@ -30,10 +29,6 @@ include("voronoi_operators.jl")
 
 include("zero_arrays.jl")
 include("voronoi.jl")
-
-nlat = 16
-sph = SHTnsSphere(nlat)
-@info CFDomains.data_layout(sph)
 
 choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
 
