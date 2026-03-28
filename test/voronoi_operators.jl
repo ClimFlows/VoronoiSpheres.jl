@@ -30,7 +30,7 @@ function test_op(q, tmp, op)
     @test grad² ≈ grad⋅grad
 
     run() = norm_op(q, tmp,op, Ops.apply!)
-    display(@benchmark $run())
+    display(@bench $run())
 end
 
 # 2 inputs
@@ -69,7 +69,7 @@ function test_op(a, b, tmp, op)
     @test grad² ≈ grad⋅grad
 
     run() = norm_op(a, b, tmp, op, Ops.apply!)
-    display(@benchmark $run())
+    display(@bench $run())
 end
 
 # test div with AsDensity output
@@ -96,7 +96,7 @@ function test_norm_div(ucov, tmp, sphere)
     @test grad² ≈ grad⋅grad
 
     run() = norm_div(ucov, tmp, Ops.AsDensity(sphere), Ops.Divergence(sphere))
-    display(@benchmark $run())
+    display(@bench $run())
 end
 
 # all tests
