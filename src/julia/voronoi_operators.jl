@@ -4,32 +4,14 @@ using Base: @propagate_inbounds as @prop
 # using Base: @inbounds as @prop
 
 using ManagedLoops: @unroll, @vec, @with
-
-import CFDomains.Stencils
+using CFDomains.LazyOperators: LazyDiagonalOp, adj_action_in, adj_action_out, flip, set!
+import VoronoiSpheres.Stencils
 
 macro inb(expr)
     esc(:(@inbounds $expr))
 #    esc(expr)
 end
 
-abstract type VoronoiOperator{In,Out} end
-
-@inline (::Type{T})(sph) where { T<:VoronoiOperator } = T(sph, set!)
-
-@inline @generated function (::Type{T})(sph, action!::Action) where { T<:VoronoiOperator, Action }
-    fields = [ :( getproperty(sph, $(QuoteNode(name)))) for name in fieldnames(T)]
-    Expr(:call, T, :action!, fields[2:end]...)
-end
-
-#================== lazy diagonal operator ===============#
-
-struct LazyDiagonalOp{V<:AbstractVector}
-    diag::V
-end
-struct WritableDVP{N, T, D<:AbstractVector, V<:AbstractArray{T,N}} <: AbstractArray{T,N}
-    diag::D
-    x::V
-end
 """
     as_density = AsDensity(vsphere) # a `LazyDiagonalOp`
     density = as_density(scalar)    # a `WritableDVP` (diagonal-vector-product)
@@ -40,42 +22,19 @@ as a lazy, write-only `AbstractArray` to be passed to a VoronoiOperator `op!`
 as an *output* argument.
 """
 AsDensity(vsphere) = LazyDiagonalOp(vsphere.inv_Ai)
-(op::LazyDiagonalOp)(field) = WritableDVP(op.diag, field)
 
-Base.eachindex(y::WritableDVP) = eachindex(y.x)
-Base.axes(y::WritableDVP) = axes(y.x)
+#================================================================#
+#======================== VoronoiOperator =======================#
+#================================================================#
 
-# x[i] == diag[i] * y[i]
-@prop Base.setindex!(y::WritableDVP, v, i...) = y.x[i...] =  v*getdiag(y, i...)
-@prop addto!(y::WritableDVP, v, i...)         = y.x[i...] += v*getdiag(y, i...)
-@prop subfrom!(y::WritableDVP, v, i...)       = y.x[i...] -= v*getdiag(y, i...)
-@prop getdiag(d::WritableDVP{1}, i) = d.diag[i]
-@prop getdiag(d::WritableDVP{2}, _, i) = d.diag[i]
+abstract type VoronoiOperator{In,Out} end
 
-#========== actions: what to do on the output of operators ===========#
+@inline (::Type{T})(sph) where { T<:VoronoiOperator } = T(sph, set!)
 
-@prop set!(out, v, i...)      = out[i...] = v
-@prop setminus!(out, v, i...) = out[i...] = -v
-@prop addto!(out, v, i...)    = out[i...] += v
-@prop subfrom!(out, v, i...)  = out[i...] -= v
-@prop setzero!(out, i)     = out[i] = 0
-@prop unchanged!(_, i)     = nothing
-
-# (out, in) := (op(in), in) => (∂out, ∂in) := (0, ∂in + opᵀ(∂out))
-adj_action_in(::typeof(set!)) = addto!
-adj_action_out(::typeof(set!)) = setzero!
-
-# (out, in) := (-op(in), in) => (∂out, ∂in) := (0, ∂in - opᵀ(∂out))
-adj_action_in(::typeof(setminus!)) = subfrom!
-adj_action_out(::typeof(setminus!)) = setzero!
-
-# (out, in) := (out + op(in), in) => (∂out, ∂in) := (∂out, ∂in + opᵀ(∂out))
-adj_action_in(::typeof(addto!)) = addto!
-adj_action_out(::typeof(addto!)) = unchanged!
-
-# (out, in) := (out - op(in), in)  => (∂out, ∂in) := (∂out, ∂in - opᵀ(∂out))
-adj_action_in(::typeof(subfrom!), ∂in, i, ∂in_i) = subfrom!
-adj_action_out(::typeof(subfrom!), ∂out, i) = unchanged!
+@inline @generated function (::Type{T})(sph, action!::Action) where { T<:VoronoiOperator, Action }
+    fields = [ :( getproperty(sph, $(QuoteNode(name)))) for name in fieldnames(T)]
+    Expr(:call, T, :action!, fields[2:end]...)
+end
 
 #================================================================#
 #===================== VoronoiOperator{1,1} =====================#
@@ -499,9 +458,8 @@ end
     return nothing
 end
 
-flip(::typeof(addto!)) = subfrom!
-flip(::typeof(subfrom!)) = addto!
 
+#=
 #===================== automatic partial derivatives =================#
 
 """
@@ -514,5 +472,6 @@ Return the partial derivatives of scalar function `fun` evaluated at input `a, .
 either directly from the main program or via some dependency.
 """
 function pdv end
+=#
 
 end
