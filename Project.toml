@@ -1,7 +1,7 @@
 name = "VoronoiSpheres"
 uuid = "75509e46-8d8c-4f7e-9072-0d95c5edd9e4"
 authors = ["Thomas Dubos & contributors"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 CFDomains = "3699aaca-035b-4155-96ec-eecb526248de"
