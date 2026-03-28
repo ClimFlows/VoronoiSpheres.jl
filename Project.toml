@@ -1,7 +1,7 @@
 name = "VoronoiSpheres"
 uuid = "75509e46-8d8c-4f7e-9072-0d95c5edd9e4"
-authors = ["Thomas Dubos & contributors"]
 version = "0.1.0"
+authors = ["Thomas Dubos & contributors"]
 
 [deps]
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
@@ -26,6 +26,7 @@ SHTnsSpheres_Ext = ["SHTnsSpheres"]
 
 [compat]
 Adapt = "4"
+ForwardDiff = "1"
 ManagedLoops = "0.1.11"
 PackageExtensionCompat = "1"
 SHTnsSpheres = "0.2.16"
