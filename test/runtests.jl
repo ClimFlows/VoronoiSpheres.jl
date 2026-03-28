@@ -12,11 +12,12 @@ using DifferentiationInterface: Constant as Const
 
 using LoopManagers: SIMD, VectorizedCPU, MultiThread
 using ManagedLoops: @with, @vec, @unroll
-using SHTnsSpheres: SHTnsSphere
 using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 
-using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere, transpose!, void
-using VoronoiSpheres.LazyExpressions: @lazy
+using CFDomains: CFDomains, transpose!, void
+using CFDomains.LazyExpressions: @lazy, pdv
+
+using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere
 import VoronoiSpheres.VoronoiOperators as Ops
 
 # using ClimFlowsPlots.SphericalInterpolations: lonlat_interp
@@ -29,26 +30,11 @@ include("voronoi_operators.jl")
 include("zero_arrays.jl")
 include("voronoi.jl")
 
-nlat = 16
-sph = SHTnsSphere(nlat)
-@info VoronoiSpheres.data_layout(sph)
-
 choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
 
 reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
 @info sphere
-
-#=
-to_lonlat = let
-    F = choices.precision
-    lons, lats = F.(1:2:360), F.(-89:2:90)
-    permute(data) = permutedims(data, (2, 3, 1))
-    permute(data::Matrix) = data
-    interp = lonlat_interp(sphere, lons, lats)
-    permute ∘ interp ∘ Array
-end
-=#
 
 @testset "transpose!" begin
     x = randn(3,4)

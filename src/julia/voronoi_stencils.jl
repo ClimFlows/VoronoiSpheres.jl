@@ -1,6 +1,6 @@
 module Stencils
 
-using VoronoiSpheres: HVLayout, VHLayout
+using CFDomains: HVLayout, VHLayout
 using ManagedLoops: @unroll
 
 # Each stencil operation is implemented in three steps:
