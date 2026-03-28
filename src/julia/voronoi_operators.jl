@@ -21,37 +21,6 @@ abstract type VoronoiOperator{In,Out} end
     Expr(:call, T, :action!, fields[2:end]...)
 end
 
-#================== lazy diagonal operator ===============#
-
-struct LazyDiagonalOp{V<:AbstractVector}
-    diag::V
-end
-struct WritableDVP{N, T, D<:AbstractVector, V<:AbstractArray{T,N}} <: AbstractArray{T,N}
-    diag::D
-    x::V
-end
-"""
-    as_density = AsDensity(vsphere) # a `LazyDiagonalOp`
-    density = as_density(scalar)    # a `WritableDVP` (diagonal-vector-product)
-    op!(density, ...)               # pass `density as *output* argument
-
-Given a zero-form `scalar`, `as_density` returns the equivalent two-form
-as a lazy, write-only `AbstractArray` to be passed to a VoronoiOperator `op!` 
-as an *output* argument.
-"""
-AsDensity(vsphere) = LazyDiagonalOp(vsphere.inv_Ai)
-(op::LazyDiagonalOp)(field) = WritableDVP(op.diag, field)
-
-Base.eachindex(y::WritableDVP) = eachindex(y.x)
-Base.axes(y::WritableDVP) = axes(y.x)
-
-# x[i] == diag[i] * y[i]
-@prop Base.setindex!(y::WritableDVP, v, i...) = y.x[i...] =  v*getdiag(y, i...)
-@prop addto!(y::WritableDVP, v, i...)         = y.x[i...] += v*getdiag(y, i...)
-@prop subfrom!(y::WritableDVP, v, i...)       = y.x[i...] -= v*getdiag(y, i...)
-@prop getdiag(d::WritableDVP{1}, i) = d.diag[i]
-@prop getdiag(d::WritableDVP{2}, _, i) = d.diag[i]
-
 #========== actions: what to do on the output of operators ===========#
 
 @prop set!(out, v, i...)      = out[i...] = v

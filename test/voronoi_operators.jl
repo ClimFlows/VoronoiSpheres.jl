@@ -127,6 +127,6 @@ function test_voronoi_ops(sphere, alloc)
     test_op(q, ucov, tmp_i, Ops.DivCenteredFlux(sphere))
     test_op(q, r, tmp_e, Ops.MulGradient(sphere))
     # LazyDiagonalOp
-    test_norm_div(ucov, tmp_i, sphere)
+    # test_norm_div(ucov, tmp_i, sphere)
 end
 

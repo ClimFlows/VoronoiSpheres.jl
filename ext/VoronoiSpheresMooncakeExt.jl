@@ -2,10 +2,8 @@ module VoronoiSpheresMooncakeExt
 
 using Base: @propagate_inbounds as @prop
 
-using VoronoiSpheres.LazyExpressions: LazyExpression, lazy_expr
 import VoronoiSpheres.VoronoiOperators as Ops
 using VoronoiSpheres.VoronoiOperators: apply!, apply_adj!, apply_internal!, VoronoiOperator
-using VoronoiSpheres.VoronoiOperators: LazyDiagonalOp, WritableDVP
 
 import Mooncake
 using Mooncake: CoDual, NoTangent, NoPullback, NoFData, NoRData
@@ -24,10 +22,8 @@ Mooncake.rrule!!(::CoFunction(apply!), fx::Vararg) = apply!_rrule!!(fx...)
 
 # Keep a copy of output argument x.
 archive(x) = copy(x)
-archive(y::WritableDVP) = archive(y.x)
 # Restore the archived value of output argument x
 restore!(x,x0) = copy!(x, x0)
-restore!(y::WritableDVP, x0) = restore!(y.x, x0)
 
 function apply!_rrule!!(foutput::CoArray{F}, fmgr::CoDual, op::CoOperator{1,1}, finput::CoArray{F}) where F
     # @info "apply!_rrule!!" typeof(foutput) typeof(op) typeof(finput)
@@ -57,6 +53,15 @@ function apply!_rrule!!(foutput::CoArray{F}, fmgr::CoDual, op::CoOperator{1,2}, 
     end
     return zero_fcodual(nothing), apply!_pullback!!
 end
+
+#=
+
+using VoronoiSpheres.LazyExpressions: LazyExpression, lazy_expr
+using VoronoiSpheres.VoronoiOperators: LazyDiagonalOp, WritableDVP
+
+restore!(y::WritableDVP, x0) = restore!(y.x, x0)
+archive(y::WritableDVP) = archive(y.x)
+
 
 # `y = Diag(x)` where `Diag` is a `LazyDiagonalOp` is a WritableDVP
 # (diagonal-vector-product), a write-only AbstractArray
@@ -149,5 +154,6 @@ end
     ∂a[i] += v*da
     ∂b[i] += v*db
 end
+=#
 
 end
