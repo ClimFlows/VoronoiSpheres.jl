@@ -1,4 +1,4 @@
-module CFDomainsAdaptExt
+module VoronoiSpheresAdaptExt
 
 using VoronoiSpheres: VoronoiSphere, Shell, HybridCoordinate, HybridMassCoordinate
 using Adapt: @adapt_structure 

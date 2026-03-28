@@ -1,4 +1,4 @@
-module CFDomainsMooncakeExt
+module VoronoiSpheresMooncakeExt
 
 using Base: @propagate_inbounds as @prop
 

@@ -1,4 +1,4 @@
-module CFDomainsSIMDExt
+module VoronoiSpheresSIMDExt
 
 import ForwardDiff as FD
 import SIMD
