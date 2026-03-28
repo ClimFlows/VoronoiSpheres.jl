@@ -21,6 +21,7 @@ VoronoiSpheresMooncakeExt = ["Mooncake"]
 
 [compat]
 Adapt = "4"
+MacroTools = "0.5"
 CFDomains = "0.5"
 ManagedLoops = "0.1.11"
 Mooncake = "0.5"
