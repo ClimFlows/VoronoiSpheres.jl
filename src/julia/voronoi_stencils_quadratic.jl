@@ -15,7 +15,7 @@ $(INB(:mul_grad, :mulgrad))
 """
 mul_grad(vsphere) = @lhs (; edge_left_right) = vsphere
 
-@inl mul_grad((; edge_left_right), ij::Int) =
+@inl mul_grad((; edge_left_right), ij::Integer) =
     Fix(get_mul_grad, (edge_left_right[1, ij], edge_left_right[2, ij]))
 
 @inl get_mul_grad(left, right, a, q) = (a[right]+a[left])*(q[right] - q[left])/2
@@ -25,7 +25,7 @@ mul_grad(vsphere) = @lhs (; edge_left_right) = vsphere
 
 """
     vsphere = dot_product_form(vsphere::VoronoiSphere) # $OPTIONAL
-    dot_prod = dot_product_form(vsphere, cell::Int, v::Val{N})
+    dot_prod = dot_product_form(vsphere, cell::Integer, v::Val{N})
 
     # $(SINGLE(:ucov, :vcov))
     dp[cell] = dot_prod(ucov, vcov) 
@@ -54,7 +54,7 @@ end
 
 """
     vsphere = squared_covector(vsphere::VoronoiSphere) # $OPTIONAL
-    square = squared_covector(vsphere, cell::Int, v::Val{N})
+    square = squared_covector(vsphere, cell::Integer, v::Val{N})
 
     # $(SINGLE(:ucov))
     u_squared_form[cell] = square(ucov) 
@@ -102,7 +102,7 @@ $(INB(:centered_flux, :cflux))
 """
 centered_flux(vsphere) = @lhs (; edge_left_right, le_de) = vsphere
 
-@inl function centered_flux((; edge_left_right, le_de), ij::Int)
+@inl function centered_flux((; edge_left_right, le_de), ij::Integer)
     # factor 1/2 is for the centered average
     Fix(get_centered_flux, (ij, edge_left_right[1, ij], edge_left_right[2, ij], le_de[ij] / 2))
 end
@@ -136,7 +136,7 @@ $(INB(:div_centered_flux, :div_flux))
 """
 div_centered_flux(vsphere) = @lhs (; primal_neighbour, primal_edge, primal_ne) = vsphere
 
-@gen div_centered_flux(vsphere, cell::Int, ::Val{N}) where N = quote
+@gen div_centered_flux(vsphere, cell::Integer, ::Val{N}) where N = quote
     (; primal_neighbour, primal_edge, primal_ne) = vsphere
     cells = @unroll (primal_neighbour[e, cell] for e=1:$N)
     edges = @unroll (primal_edge[e, cell] for e=1:$N)
@@ -162,9 +162,8 @@ $(INB(:dot_grad, :dotgrad))
 """
 dot_grad(vsphere) = @lhs (; primal_neighbour, primal_edge, primal_ne) = vsphere
 
-@inl function dot_grad((; primal_neighbour, primal_edge, primal_ne), cell::Int, N::Val)
-    get = Get(cell, N)
-    Fix(get_dot_grad, (cell, get(primal_neighbour), get(primal_edge), get(primal_ne)))    
+@inl function dot_grad((; primal_neighbour, primal_edge, primal_ne), cell::Integer, N::Val)
+    Fix(get_dot_grad, (cell, get_stencil(N, cell, primal_neighbour, primal_edge, primal_ne)...))
 end
 
 #=============== u × v (vector, vector -> edge two-form) ==============#

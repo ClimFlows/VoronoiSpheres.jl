@@ -282,11 +282,11 @@ end
 
 #========== Energy-conserving TRiSK ===========#
 
-struct EnergyTRiSK{Action, F} <: VoronoiOperator{1,2}
+struct EnergyTRiSK{Action, VI, MI, MF} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    trisk_deg::Vector{Int32}
-    trisk::Matrix{Int32}
-    wee::Matrix{F}
+    trisk_deg::VI # Vector{Int32}
+    trisk::MI # Matrix{Int32}
+    wee::MF # Matrix{F}
 end
 
 @inline function apply_internal!(ucov, mgr, op::EnergyTRiSK, U, q)
@@ -465,16 +465,44 @@ end
     return nothing
 end
 
-@inline function loop_trisk(::Val{2}, output, mgr, action!, op, stencil, inputs...)
+@inline function loop_trisk(::Val{2}, output, mgr, action!::A, op, stencil, inputs...) where A
     @with mgr, 
     let (krange, irange) = axes(output)
         @inb for edge in irange
-            deg = op.trisk_deg[edge]
-            @unroll deg in 9:11 begin
-                st = stencil(op, edge, Val(deg))
+#            deg = op.trisk_deg[edge]
+#            @unroll deg in 9:11 begin
+                st = stencil(op, edge, Val(10))
                 @vec for k in krange
                     action!(output, st(inputs..., k), k, edge)
                 end
+#            end
+        end
+    end
+    return nothing
+end
+
+@inline function loop_trisk(::Val{2}, output, mgr, ::typeof(set!), op, stencil, U, qe)
+    chunk=4
+    @with mgr, 
+    let (krange, nrange) = (axes(output,1), 1:div(size(output,2), chunk))
+        # (; trisk, wee) = op
+        @inb for n in nrange
+            for edge in ((n-1)*chunk+1):(n*chunk)
+            # edges = @unroll (trisk[n,edge] for n=1:10)
+            # weights = @unroll (wee[n,edge] for n=1:10)
+            st = stencil(op, edge, Val(10))
+            # edges = Stencils.get_stencil(Val(10), edge, trisk)
+            # weights = Stencils.get_stencil(Val(10), edge, wee)
+            # getter = Stencils.Get(edge, Val(10))
+            # edges = getter(trisk)
+            # weights = getter(wee)
+            # st = Stencils.Fix(Stencils.sum_TRiSK1, (edge, edges, weights))
+            @vec for k in krange
+                output[k, edge] = st(U, qe, k)
+                # output[k, edge] = @unroll sum(weights[n]*(U[k,edges[n]]*(qe[k,edges[n]]+qe[k,edge])) for n in 1:10)/2
+                # output[k, edge] = Stencils.sum_TRiSK1(edge, edges, weights, U, qe, k)
+                # output[k, edge] = Stencils.sum_TRiSK1(st.coefs[1], st.coefs[2], st.coefs[3], U, qe, k)
+            end
             end
         end
     end

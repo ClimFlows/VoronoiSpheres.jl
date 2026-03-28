@@ -14,7 +14,7 @@ $(DUALSCALAR(:qv))
 $(INB(:average_iv, :avg))
 """
 average_iv(vsphere) = @lhs (; dual_vertex, Riv2) = vsphere
-@inl average_iv((; dual_vertex, Riv2), ij::Int) = Fix(sum_weighted, Get(ij, 3), dual_vertex, Riv2)
+@inl average_iv((; dual_vertex, Riv2), ij::Integer) = Fix(sum_weighted, get_stencil(Val(3), ij, dual_vertex, Riv2))
 
 #========================= divergence =======================#
 
@@ -34,7 +34,7 @@ $(INB(:divergence, :div))
 """
 divergence(vsphere) = @lhs (; inv_Ai, primal_edge, primal_ne) = vsphere
 
-@gen divergence(vsphere, ij::Int, v::Val{N}) where N = quote
+@gen divergence(vsphere, ij::Integer, v::Val{N}) where N = quote
     # signs include the inv_area factor
     inv_area = vsphere.inv_Ai[ij]
     edges = @unroll (vsphere.primal_edge[e, ij] for e = 1:$N)
@@ -59,7 +59,7 @@ $(INB(:grad_form, :gradcov))
 """
 grad_form(vsphere) = @lhs (; inv_Ai, edge_left_right) = vsphere
 
-@inl function grad_form(vsphere, ij::Int)
+@inl function grad_form(vsphere, ij::Integer)
     (; inv_Ai, edge_left_right) = vsphere
     left, right = edge_left_right[1, ij], edge_left_right[2, ij]
     Fix(get_grad_form, (left, right, inv_Ai[left], inv_Ai[right]))
@@ -69,7 +69,7 @@ end
 
 """
     vsphere = dot_product(vsphere::VoronoiSphere) # $OPTIONAL
-    dot_prod = dot_product(vsphere, cell::Int, v::Val{N})
+    dot_prod = dot_product(vsphere, cell::Integer, v::Val{N})
 
     # $(SINGLE(:ucov, :vcov))
     dp[cell] = dot_prod(ucov, vcov) 
@@ -99,7 +99,7 @@ end
 
 """
     vsphere = dot_prod_contra(vsphere::VoronoiSphere) # $OPTIONAL
-    dot_prod = dot_prod_contra(vsphere, cell::Int, v::Val{N})
+    dot_prod = dot_prod_contra(vsphere, cell::Integer, v::Val{N})
 
     # $(SINGLE(:U, :V))
     dp[cell] = dot_prod(U, V) 
@@ -128,7 +128,7 @@ end
 
 """
     vsphere = contraction(vsphere::VoronoiSphere) # $OPTIONAL
-    contract = contraction(vsphere, cell::Int, v::Val{N})
+    contract = contraction(vsphere, cell::Integer, v::Val{N})
 
     # $(SINGLE(:ucontra, :vcov))
     uv[cell] = contract(ucontra, vcov) 
@@ -148,8 +148,7 @@ contraction(vsphere) = @lhs (; inv_Ai, primal_edge) = vsphere
 
 @inl function contraction((; inv_Ai, primal_edge), ij, N::Val)
     # the factor 1/2 is for the Perot formula
-    get = Get(ij, N)
-    return Fix(get_contraction, (get(primal_edge), inv_Ai[ij]/2))
+    return Fix(get_contraction, (get_stencil(N, ij, primal_edge), inv_Ai[ij]/2))
 end
 
 #==================== leaf expressions ======================#

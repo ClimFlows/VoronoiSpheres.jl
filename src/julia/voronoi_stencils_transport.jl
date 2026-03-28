@@ -43,8 +43,7 @@ $(INB(:gradient3d, :grad))
 gradient3d(vsphere) = @lhs (; primal_neighbour, primal_grad3d) = vsphere
 
 @inl function gradient3d((; primal_neighbour, primal_grad3d), cell, N::Val)
-    get = Get(cell, N)
-    neighbours, grads = get(primal_neighbour, primal_grad3d)
+    neighbours, grads = get_stencil(N, cell, primal_neighbour, primal_grad3d)
     return Fix(get_gradient3d, (cell, neighbours, grads))
 end
 
