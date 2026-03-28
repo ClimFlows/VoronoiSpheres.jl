@@ -1,5 +1,6 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+CFDomains = "3699aaca-035b-4155-96ec-eecb526248de"
 ClimFlowsData = "f57ce217-a21f-4063-8e40-561e9bf56723"
 DifferentiationInterface = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"

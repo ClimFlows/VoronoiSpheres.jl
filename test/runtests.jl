@@ -15,7 +15,8 @@ using ManagedLoops: @with, @vec, @unroll
 using SHTnsSpheres: SHTnsSphere
 using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 
-using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere, transpose!, void
+using CFDomains: CFDomains, transpose!, void
+using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere
 using VoronoiSpheres.LazyExpressions: @lazy
 import VoronoiSpheres.VoronoiOperators as Ops
 
@@ -31,24 +32,13 @@ include("voronoi.jl")
 
 nlat = 16
 sph = SHTnsSphere(nlat)
-@info VoronoiSpheres.data_layout(sph)
+@info CFDomains.data_layout(sph)
 
 choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
 
 reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
 @info sphere
-
-#=
-to_lonlat = let
-    F = choices.precision
-    lons, lats = F.(1:2:360), F.(-89:2:90)
-    permute(data) = permutedims(data, (2, 3, 1))
-    permute(data::Matrix) = data
-    interp = lonlat_interp(sphere, lons, lats)
-    permute ∘ interp ∘ Array
-end
-=#
 
 @testset "transpose!" begin
     x = randn(3,4)
