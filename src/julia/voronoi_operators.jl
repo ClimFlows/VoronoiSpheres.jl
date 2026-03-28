@@ -4,7 +4,7 @@ using Base: @propagate_inbounds as @prop
 # using Base: @inbounds as @prop
 
 using ManagedLoops: @unroll, @vec, @with
-
+using CFDomains.LazyOperators: LazyDiagonalOp
 import VoronoiSpheres.Stencils
 
 macro inb(expr)
@@ -471,6 +471,18 @@ end
 flip(::typeof(addto!)) = subfrom!
 flip(::typeof(subfrom!)) = addto!
 
+"""
+    as_density = AsDensity(vsphere) # a `LazyDiagonalOp`
+    density = as_density(scalar)    # a `WritableDVP` (diagonal-vector-product)
+    op!(density, ...)               # pass `density as *output* argument
+
+Given a zero-form `scalar`, `as_density` returns the equivalent two-form
+as a lazy, write-only `AbstractArray` to be passed to a VoronoiOperator `op!` 
+as an *output* argument.
+"""
+AsDensity(vsphere) = LazyDiagonalOp(vsphere.inv_Ai)
+
+#=
 #===================== automatic partial derivatives =================#
 
 """
@@ -483,5 +495,6 @@ Return the partial derivatives of scalar function `fun` evaluated at input `a, .
 either directly from the main program or via some dependency.
 """
 function pdv end
+=#
 
 end

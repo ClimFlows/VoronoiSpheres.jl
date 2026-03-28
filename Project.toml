@@ -13,12 +13,12 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [weakdeps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+# ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 
 [extensions]
 VoronoiSpheresAdaptExt = ["Adapt"]
-VoronoiSpheresForwardDiffExt = ["ForwardDiff"]
+# VoronoiSpheresForwardDiffExt = ["ForwardDiff"]
 VoronoiSpheresMooncakeExt = ["Mooncake"]
 
 [compat]

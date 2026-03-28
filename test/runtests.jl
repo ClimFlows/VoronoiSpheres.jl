@@ -16,7 +16,7 @@ using SHTnsSpheres: SHTnsSphere
 using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 
 using CFDomains: CFDomains, transpose!, void
-using CFDomains.LazyExpressions: @lazy
+using CFDomains.LazyExpressions: @lazy, pdv
 
 using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere
 import VoronoiSpheres.VoronoiOperators as Ops
