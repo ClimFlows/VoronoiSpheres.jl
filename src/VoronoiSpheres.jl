@@ -1,4 +1,5 @@
-module CFDomains
+module VoronoiSpheres
+
 using MutatingOrNot: void, Void
 using ManagedLoops: @loops, @unroll, @with
 using Random: MersenneTwister
