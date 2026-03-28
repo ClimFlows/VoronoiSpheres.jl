@@ -15,19 +15,8 @@ Documentation for [VoronoiSpheres](https://github.com/ClimFlows/VoronoiSpheres.j
 Modules = [VoronoiSpheres]
 ```
 
-## Vertical interpolation
-
-```@autodocs
-Modules = [VoronoiSpheres.VerticalInterpolation]
-```
-
 ## Operators on Voronoi mesh
 
 ```@autodocs
 Modules = [VoronoiSpheres.Stencils, VoronoiSpheres.VoronoiOperators]
-```
-
-## Virtual zero-filled arrays
-```@autodocs
-Modules = [VoronoiSpheres.ZeroArrays]
 ```
