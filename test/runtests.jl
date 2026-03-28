@@ -15,9 +15,9 @@ using ManagedLoops: @with, @vec, @unroll
 using SHTnsSpheres: SHTnsSphere
 using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 
-using CFDomains: CFDomains, Stencils, VoronoiSphere, transpose!, void
-using CFDomains.LazyExpressions: @lazy
-import CFDomains.VoronoiOperators as Ops
+using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere, transpose!, void
+using VoronoiSpheres.LazyExpressions: @lazy
+import VoronoiSpheres.VoronoiOperators as Ops
 
 # using ClimFlowsPlots.SphericalInterpolations: lonlat_interp
 
@@ -31,7 +31,7 @@ include("voronoi.jl")
 
 nlat = 16
 sph = SHTnsSphere(nlat)
-@info CFDomains.data_layout(sph)
+@info VoronoiSpheres.data_layout(sph)
 
 choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
 

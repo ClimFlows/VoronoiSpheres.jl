@@ -1,7 +1,7 @@
 module CFDomainsForwardDiffExt
 
 import ForwardDiff as FD
-import CFDomains.VoronoiOperators as Ops
+import VoronoiSpheres.VoronoiOperators as Ops
 
 function Ops.pdv(fun1::T, x) where {T}
     xx = FD.Dual{T}(x, one(x))

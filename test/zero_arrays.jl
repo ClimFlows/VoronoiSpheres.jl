@@ -1,4 +1,4 @@
-using CFDomains.ZeroArrays: zero_array
+using VoronoiSpheres.ZeroArrays: zero_array
 
 @testset "zero_array" begin
     x = randn(3,4)

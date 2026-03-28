@@ -1,4 +1,4 @@
-using CFDomains
+using VoronoiSpheres
 using BenchmarkTools
 
 SUITE = BenchmarkGroup()
