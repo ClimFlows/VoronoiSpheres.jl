@@ -11,6 +11,7 @@ include("julia/Zippers.jl") # for zipped broadcast
 include("julia/voronoi_stencils.jl")
 include("julia/voronoi_operators.jl")
 include("julia/VoronoiSphere.jl")
+include("julia/hyperdiff.jl")
 
 CFDomains.shell(nz, layer::VoronoiSphere) = Shell(nz, layer, VHLayout())
 
