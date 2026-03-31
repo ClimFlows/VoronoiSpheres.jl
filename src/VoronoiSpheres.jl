@@ -5,6 +5,7 @@ using ManagedLoops: @loops, @unroll, @with
 using Random: MersenneTwister
 
 using CFDomains: CFDomains, UnstructuredDomain, @fast, Shell, HyperDiffusion
+import CFDomains: allocate_field, scratch_hyperdiff
 
 include("julia/Zippers.jl") # for zipped broadcast
 include("julia/voronoi_stencils.jl")
