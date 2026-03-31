@@ -15,7 +15,7 @@ $(INB(:average_ie, :avg))
 """
 average_ie(vsphere) = @lhs (; edge_left_right) = vsphere
 @inl average_ie(vsphere, ij) =
-    Fix(get_average, (vsphere.edge_left_right[1, ij], vsphere.edge_left_right[2, ij]))
+    Fix(get_average, vsphere.edge_left_right[ij])
 
 """
     vsphere = average_iv_form(vsphere) # $OPTIONAL
@@ -108,8 +108,8 @@ $(INB(:div_form, :divf))
 """
 div_form(vsphere) = @lhs (; primal_edge, primal_ne) = vsphere
 
-@inl div_form((; primal_edge, primal_ne), ij::Int, N::Val) =    
-    Fix(sum_weighted, Get(ij, N), primal_edge, primal_ne)
+@inl div_form((; primal_edge, primal_ne), ij::Integer) =
+    Fix(sum_weighted, (primal_edge[ij], primal_ne[ij]))
 
 #========================= curl =====================#
 
@@ -151,7 +151,7 @@ $(INB(:gradient, :gradcov))
 gradient(vsphere) = @lhs (; edge_left_right) = vsphere
 
 @inl gradient(vsphere, ij::Int) =
-    Fix(get_difference, (vsphere.edge_left_right[1, ij], vsphere.edge_left_right[2, ij]))
+    Fix(get_difference, vsphere.edge_left_right[ij])
 
 #===================== grad ⟂ =====================#
 

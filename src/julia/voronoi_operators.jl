@@ -96,14 +96,17 @@ end
 
 #========== gradient ===========#
 
-struct Gradient{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+const VTI{N} = AbstractVector{NTuple{N, Int32}}
+const VTR{N,F} = AbstractVector{NTuple{N, F}}
+
+struct Gradient{Action, N6, F<:AbstractFloat, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
     # for the adjoint
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    primal_ne::Matrix{F}
+    primal_edge::VI6
+    primal_ne::VR6
 end
+# Gradient(sphere, action! = set!) = Gradient(action!, sphere.edge, sphere.primal_edge, sphere.primal_ne)
 
 @inline function apply_internal!(output, mgr, op::Gradient, input)
     loop_simple(output, mgr, op.action!, op, Stencils.gradient, input)
@@ -116,17 +119,16 @@ end
 
 #========== divergence ===========#
 
-struct Divergence{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct Divergence{Action, N6, F<:AbstractFloat, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    primal_ne::Matrix{F}
+    primal_edge::VI6
+    primal_ne::VR6
     # for the adjoint
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
 end
 
 @inline function apply_internal!(output, mgr, op::Divergence, input)
-    loop_cell(output, mgr, op.action!, op, Stencils.div_form, input)
+    loop_simple(output, mgr, op.action!, op, Stencils.div_form, input)
     return nothing
 end
 
