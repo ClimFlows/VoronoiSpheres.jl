@@ -6,30 +6,35 @@ macro fields(expr)
 end
 
 struct VoronoiSphere{
-    F,
+    F<:AbstractFloat,
     VI<:AbstractVector{Int32},  # Vectors of integers
-    MI<:AbstractMatrix{Int32},  # Matrices of integers
     VR<:AbstractVector{F},      # Vectors of reals
-    MR<:AbstractMatrix{F},      # Matrices of reals
+#    VI2<:VTI{2}, VI3<:VTI{3}, VI4<:VTI{4}, VI6<:VTI{N6}, VI10<:VTI{N10},
+#    VR2<:VTR{2,F}, VR3<:VTR{3,F}, VR4<:VTR{4,F}, VR6<:VTR{N6,F}, VR10<:VTR{N10,F},
+    VI2, VI3, VR3, VI4, VR4, VI6, VR6, VI10, VR10,
     AR<:AbstractArray{F,3},     # 3D array of reals
-    VP<:AbstractVector{NTuple{3,F}}, # Vectors of 3D points
     MP<:AbstractMatrix{NTuple{3,F}}, # Matrices of 3D points
 } <: UnstructuredDomain
     @fields (primal_num, dual_num, edge_num)::Int32
     @fields (primal_deg, dual_deg, trisk_deg)::VI
-    @fields (primal_edge, primal_vertex, dual_edge, dual_vertex)::MI
-    @fields (edge_left_right, edge_down_up, trisk, edge_kite, primal_neighbour)::MI
     @fields (Ai, lon_i, lat_i, Av, lon_v, lat_v)::VR
     @fields (le, de, le_de, lon_e, lat_e, angle_e)::VR
-    @fields (primal_bounds_lon, primal_bounds_lat, dual_bounds_lon, dual_bounds_lat)::MR
-    @fields (Riv2, Aiv, Avi, wee, edge_perp, primal_ne, dual_ne)::MR
+    @fields (edge_left_right, edge_down_up)::VI2
+    @fields (dual_edge, dual_vertex)::VI3
+    @fields (Avi, Riv2, dual_ne, dual_bounds_lon, dual_bounds_lat)::VR3
+    edge_kite ::VI4
+    edge_perp :: VR4
+    @fields (primal_edge, primal_vertex, primal_neighbour)::VI6
+    @fields (primal_ne, Aiv, primal_bounds_lon, primal_bounds_lat)::VR6
+    trisk :: VI10
+    wee :: VR10
     primal_perot_cov::AR
     primal_grad3d::MP
     # computed
     inv_Ai::VR
-    @fields (xyz_i, elon_i, elat_i)::VP
-    @fields (xyz_e, elon_e, elat_e, normal_e, tangent_e)::VP
-    @fields (xyz_v, elon_v, elat_v)::VP
+    @fields (xyz_i, elon_i, elat_i)::VR3
+    @fields (xyz_e, elon_e, elat_e, normal_e, tangent_e)::VR3
+    @fields (xyz_v, elon_v, elat_v)::VR3
     @fields (cen2edge, cen2vertex)::MP
 end
 const VSph = VoronoiSphere
@@ -85,10 +90,44 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     data.cen2edge = center_to_edge(data.xyz_i, data.xyz_e, data.primal_deg, data.primal_edge)
     data.cen2vertex = center_to_edge(data.xyz_i, data.xyz_v, data.primal_deg, data.primal_vertex)
 
+    # Convert 2D arrays into vectors of tuples
+    for name in (:dual_edge, :dual_vertex, :edge_left_right, :edge_down_up, :edge_kite, :Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat)
+        data[name] = vector_of_tuples(data[name])
+    end
+    for name in (:primal_edge, :primal_vertex, :primal_neighbour, :primal_ne, :Aiv, :primal_bounds_lat, :primal_bounds_lon)
+        data[name] = vector_of_tuples(data[name], data.primal_deg)
+    end
+    for name in (:trisk, :wee)
+        data[name] = vector_of_tuples(data[name], data.trisk_deg)
+    end
+
     # Store everything into a VoronoiSphere object
-    names = fieldnames(VoronoiSphere)
-    return VoronoiSphere((crop(nums, data[name], name) for name in names)...)
+    F = eltype(data.Ai)
+    VI = same_type(data, (:primal_deg, :dual_deg, :trisk_deg))
+    VR = same_type(data, (:Ai, :lon_i, :lat_i, :Av, :lon_v, :lat_v, :le, :de, :le_de, :lon_e, :lat_e, :angle_e))
+    VI2 = same_type(data, (:edge_left_right, :edge_down_up))
+    VI3 = same_type(data, (:dual_edge, :dual_vertex))
+    VR3 = same_type(data, (:Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat))
+    VI4 = typeof(data.edge_kite)
+    VR4 = typeof(data.edge_perp)
+    VI6 = same_type(data, (:primal_edge, :primal_vertex, :primal_neighbour))
+    VR6 = same_type(data, (:primal_ne, :Aiv, :primal_bounds_lon, :primal_bounds_lat))
+    VI10 = typeof(data.trisk)
+    VR10 = typeof(data.wee)
+    AR = typeof(data.primal_perot_cov)
+    MP = typeof(data.primal_grad3d)
+    return VoronoiSphere{F, VI, VR, VI2, VI3, VR3, VI4, VR4, VI6, VR6, VI10, VR10, AR, MP}((crop(nums, data[name], name) for name in fieldnames(VoronoiSphere))...)
+#    return VoronoiSphere((crop(nums, data[name], name) for name in fieldnames(VoronoiSphere))...)
 end
+
+function same_type(data, names)
+    T=typeof(data[names[1]])
+    for name in names
+        data[name]::T
+    end
+    return T
+end
+
 
 local_bases(lons, lats) = @. zipper = local_basis(lons, lats)
 function local_basis(lon, lat)
@@ -121,6 +160,27 @@ end
 @inline Base.eltype(dom::VSph) = eltype(dom.Ai)
 
 @inline primal(dom::VSph) = SubMesh{:scalar,typeof(dom)}(dom)
+
+vector_of_tuples(data::AbstractMatrix) = [ntuple(i->data[i,j], size(data,1)) for j in axes(data,2)]
+
+function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
+    for j in eachindex(degree)
+        deg = degree[j]
+        for i in deg+1:size(data,1)
+            data[i,j] = data[deg,j]
+        end
+    end
+    return vector_of_tuples(data)
+end
+function vector_of_tuples(data::AbstractMatrix{<:AbstractFloat}, degree)
+    for i in eachindex(degree)
+        deg = degree[i]
+        for j in deg+1:size(data,1)
+            data[j,i] = 0
+        end
+    end
+    return vector_of_tuples(data)
+end
 
 function crop((primal_num, dual_num, edge_num), data, name::Symbol)
     if name in (
@@ -213,13 +273,17 @@ By design, the Courant number for the wave equation with unit wave speed solved 
 """
 function laplace_dx(mesh::VoronoiSphere, mgr = nothing)
     rng = MersenneTwister(1234) # for reproducibility
-    h, u = similar(mesh.Ai), similar(mesh.le_de)
-    copy!(h, randn(rng, eltype(mesh.Ai), length(mesh.Ai)))
+    u = similar(mesh.le_de)
+    h = randn(rng, eltype(mesh.Ai), length(mesh.Ai))
+    grad! = VoronoiOperators.Gradient(mesh)
+    div! = VoronoiOperators.Divergence(mesh)
     for i = 1:20
         hmax = normL2(h)
         @. h = inv(hmax) * h
-        gradient!(mgr, u, h, mesh)
-        divergence!(mgr, h, u, mesh)
+        grad!(u, mgr, h)     # covariant
+        @. u *= mesh.le_de   # contravariant
+        div!(h, mgr, u)      # density 
+        @. h *= mesh.inv_Ai  # scalar
     end
     return inv(sqrt(normL2(h)))::eltype(mesh.le_de)
 end
