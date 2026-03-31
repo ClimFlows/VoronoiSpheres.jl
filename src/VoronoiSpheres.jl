@@ -5,11 +5,13 @@ using ManagedLoops: @loops, @unroll, @with
 using Random: MersenneTwister
 
 using CFDomains: CFDomains, UnstructuredDomain, @fast, Shell, HyperDiffusion
+import CFDomains: allocate_field, scratch_hyperdiff
 
 include("julia/Zippers.jl") # for zipped broadcast
 include("julia/voronoi_stencils.jl")
 include("julia/voronoi_operators.jl")
 include("julia/VoronoiSphere.jl")
+include("julia/hyperdiff.jl")
 
 CFDomains.shell(nz, layer::VoronoiSphere) = Shell(nz, layer, VHLayout())
 
