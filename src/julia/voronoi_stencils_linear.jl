@@ -31,7 +31,7 @@ $(DUAL2FORM(:qv))
 $(INB(:average_iv_form, :avg))
 """
 average_iv_form(vsphere) = @lhs (; dual_vertex, Avi) = vsphere
-@inl average_iv_form((; dual_vertex, Avi), ij::Int) = Fix(sum_weighted, Get(ij, 3), dual_vertex, Avi)
+@inl average_iv_form((; dual_vertex, Avi), ij::Int) = Fix(sum_weighted, (dual_vertex[ij], Avi[ij]))
 
 """
     vsphere = average_vi_form(vsphere) # $OPTIONAL
@@ -68,7 +68,7 @@ $(INB(:average_ve, :avg))
 average_ve(vsphere) = @lhs (; edge_down_up) = vsphere
 
 @inl average_ve(vsphere, ij::Int) =
-    Fix(get_average, (vsphere.edge_down_up[1, ij], vsphere.edge_down_up[2, ij]))
+    Fix(get_average, vsphere.edge_down_up[ij])
 
 """
     vsphere = average_ev_form(vsphere) # $OPTIONAL
@@ -85,10 +85,7 @@ $(INB(:average_ev_form, :avg))
 """
 average_ev_form(vsphere) = @lhs (; dual_edge) = vsphere
 
-@inl function average_ev_form(vsphere, ij::Int)
-    edges = @unroll (vsphere.dual_edge[n,ij] for n=1:3)
-    Fix(get_half_sum, (edges,))
-end
+@inl average_ev_form(vsphere, ij::Int) = Fix(get_half_sum, (vsphere.dual_edge[ij],))
 
 #========================= divergence (2-form) =======================#
 
@@ -127,11 +124,7 @@ $(INB(:curl, :op))
 """
 curl(vsphere) = @lhs (; Riv2, dual_edge, dual_ne) = vsphere
 
-@inl function curl(vsphere, ij)
-    edges = @unroll (vsphere.dual_edge[e, ij] for e = 1:3)
-    signs = @unroll (vsphere.dual_ne[e, ij] for e = 1:3)
-    return Fix(sum_weighted, (edges, signs))
-end
+@inl curl((; dual_edge, dual_ne), ij) = Fix(sum_weighted, (dual_edge[ij], dual_ne[ij]))
 
 #===================== grad =====================#
 
@@ -195,12 +188,7 @@ $(INB(:TRiSK, :trisk))
 """
 TRiSK(vsphere) = @lhs (; trisk, wee) = vsphere
 
-@inl TRiSK(vsphere, edge, deg) = Fix_TRiSK(sum_TRiSK1, vsphere, edge, deg)
-
-@inl function Fix_TRiSK(fun::Fun, (; trisk, wee), edge::Int, deg::Val) where Fun
-    get = Get(edge, deg)
-    Fix(fun, (edge, get(trisk), get(wee)))
-end
+@inl TRiSK((; trisk, wee), edge) = Fix(sum_TRiSK1, (edge, trisk[edge], wee[edge]))
 
 #==================== leaf expressions ======================#
 

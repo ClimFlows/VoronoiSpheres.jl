@@ -321,10 +321,10 @@ primal_from_dual!(fi, fv, mesh::VoronoiSphere) =
 function primal_from_dual!(fi::AbstractVector, fv, degrees, areas, vertices)
     @fast for ij in eachindex(degrees)
         deg = degrees[ij]
-        Ai = sum(areas[vertices[vertex, ij]] for vertex = 1:deg)
+        Ai = sum(areas[vertices[ij][vertex]] for vertex = 1:deg)
         fi[ij] =
             inv(Ai) *
-            sum(areas[vertices[vertex, ij]] * fv[vertices[vertex, ij]] for vertex = 1:deg)
+            sum(areas[vertices[ij][vertex]] * fv[vertices[ij][vertex]] for vertex = 1:deg)
     end
     return fi
 end

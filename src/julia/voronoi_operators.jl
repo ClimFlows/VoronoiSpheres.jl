@@ -36,6 +36,10 @@ abstract type VoronoiOperator{In,Out} end
     Expr(:call, T, :action!, fields[2:end]...)
 end
 
+const Vec{F<:AbstractFloat} = AbstractVector{F}
+const VTI{N} = AbstractVector{NTuple{N, Int32}}
+const VTR{N,F<:AbstractFloat} = AbstractVector{NTuple{N, F}}
+
 #================================================================#
 #===================== VoronoiOperator{1,1} =====================#
 #================================================================#
@@ -57,14 +61,13 @@ end
 
 #========== primal => dual ==========#
 
-struct DualFromPrimal{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct DualFromPrimal{Action, F, N6, VI3<:VTI{3}, VR3<:VTR{3,F}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    dual_vertex::Matrix{Int32}
-    Avi::Matrix{F}
+    dual_vertex::VI3
+    Avi::VR3
     # for the adjoint
-    primal_deg::Vector{Int32}
-    primal_vertex::Matrix{Int32}
-    Aiv::Matrix{F}
+    primal_vertex::VI6
+    Aiv::VR6
 end
 
 @inline function apply_internal!(output, mgr, op::DualFromPrimal, input)
@@ -78,11 +81,11 @@ end
 
 #========== dual => edge ==========#
 
-struct EdgeFromDual{Action} <: VoronoiOperator{1,1}
+struct EdgeFromDual{Action, VI2<:VTI{2}, VI3<:VTI{3}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    edge_down_up:: Matrix{Int32}
+    edge_down_up:: VI2
     # for the adjoint
-    dual_edge::Matrix{Int32}
+    dual_edge::VI3
 end
 
 @inline function apply_internal!(output, mgr, op::EdgeFromDual, input)
@@ -96,10 +99,7 @@ end
 
 #========== gradient ===========#
 
-const VTI{N} = AbstractVector{NTuple{N, Int32}}
-const VTR{N,F} = AbstractVector{NTuple{N, F}}
-
-struct Gradient{Action, N6, F<:AbstractFloat, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
+struct Gradient{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     edge_left_right::VI2
     # for the adjoint
@@ -119,7 +119,7 @@ end
 
 #========== divergence ===========#
 
-struct Divergence{Action, N6, F<:AbstractFloat, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
+struct Divergence{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     primal_edge::VI6
     primal_ne::VR6
@@ -138,11 +138,11 @@ end
 
 #========== curl ===========#
 
-struct Curl{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct Curl{Action, VI2<:VTI{2}, VI3<:VTI{3}, VR3<:VTR{3}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    dual_edge::Matrix{Int32}
-    dual_ne::Matrix{F}
-    edge_down_up::Matrix{Int32} # for gradperp
+    dual_edge::VI3
+    dual_ne::VR3
+    edge_down_up::VI2 # for gradperp
 end
 
 @inline function apply_internal!(output, mgr, op::Curl, input)
@@ -174,17 +174,16 @@ end
 
 #========== Squared covector ===========#
 
-struct SquaredCovector{Action, F} <: VoronoiOperator{1,1}
+struct SquaredCovector{Action, VI2<:VTI{2}, VI6<:VTI, VR<:Vec} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    le_de::Vector{F}
+    le_de::VR
+    primal_edge::VI6
     # for the adjoint
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
 end
 
 @inline function apply_internal!(output, mgr, op::SquaredCovector, input)
-    loop_cell(output, mgr, op.action!, op, Stencils.squared_covector, input)
+    loop_simple(output, mgr, op.action!, op, Stencils.squared_covector, input)
     return input # will be needed by adjoint
 end
 
@@ -222,13 +221,12 @@ end
 
 #========== Centered flux ===========#
 
-struct CenteredFlux{Action, F} <: VoronoiOperator{1,2}
+struct CenteredFlux{Action, F, VR<:Vec{F}, VI2<:VTI{2}, VI6<:VTI} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    le_de::Vector{F}
-    edge_left_right::Matrix{Int32}
+    le_de::VR
+    edge_left_right::VI2
     # for adjoint
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
+    primal_edge::VI6
 end
 
 @inline function apply_internal!(output, mgr, op::CenteredFlux, m, ucov)
@@ -243,15 +241,14 @@ end
 
 #========== Energy-conserving TRiSK ===========#
 
-struct EnergyTRiSK{Action, F} <: VoronoiOperator{1,2}
+struct EnergyTRiSK{Action, N10, VI10<:VTI{N10}, VR10<:VTR{N10}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    trisk_deg::Vector{Int32}
-    trisk::Matrix{Int32}
-    wee::Matrix{F}
+    trisk::VI10
+    wee::VR10
 end
 
 @inline function apply_internal!(ucov, mgr, op::EnergyTRiSK, U, q)
-    loop_trisk(ucov, mgr, op.action!, op, Stencils.TRiSK, U, q)
+    loop_simple(ucov, mgr, op.action!, op, Stencils.TRiSK, U, q)
     return U, q
 end
 

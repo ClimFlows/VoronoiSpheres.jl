@@ -43,11 +43,9 @@ $(INB(:dot_product_form, :dot_prod))
 """
 dot_product_form(vsphere) = @lhs (; primal_edge, le_de) = vsphere
 
-@gen dot_product_form(vsphere, ij, v::Val{N}) where {N} = quote
-    # the factor 1/2 for the Perot formula is incorporated into hodges
-    edges = @unroll (vsphere.primal_edge[e, ij] for e = 1:$N)
-    hodges = @unroll (vsphere.le_de[edges[e]]/2 for e = 1:$N)
-    return Fix(sum_bilinear, (edges, hodges))
+@inl function dot_product_form((; primal_edge, le_de), ij) 
+    # half_hodges includes the factor 1/2 for the Perot formula
+    return Fix(sum_bilinear, half_hodges(le_de, primal_edge[ij]))
 end
 
 #======= u⋅u (covector -> two-form) =========#
@@ -72,11 +70,13 @@ $(INB(:squared_covector, :square))
 """
 squared_covector(vsphere) = @lhs (; primal_edge, le_de) = vsphere
 
-@gen squared_covector(vsphere, ij, v::Val{N}) where {N} = quote
-    # the factor 1/2 for the Perot formula is incorporated into hodges
-    edges = @unroll (vsphere.primal_edge[e, ij] for e = 1:$N)
-    hodges = @unroll (vsphere.le_de[edges[e]]/2 for e = 1:$N)
-    return Fix(sum_square, (edges, hodges))
+@inl function squared_covector((; primal_edge, le_de), ij)
+    # half_hodges includes the factor 1/2 for the Perot formula
+    return Fix(sum_square, half_hodges(le_de, primal_edge[ij]))
+end
+
+@gen half_hodges(le_de, edges::NTuple{N}) where N = quote
+    return edges, @unroll (le_de[edges[e]]/2 for e = 1:$N)
 end
 
 #======================= centered flux ======================#
@@ -104,7 +104,7 @@ centered_flux(vsphere) = @lhs (; edge_left_right, le_de) = vsphere
 
 @inl function centered_flux((; edge_left_right, le_de), ij::Int)
     # factor 1/2 is for the centered average
-    Fix(get_centered_flux, (ij, edge_left_right[1, ij], edge_left_right[2, ij], le_de[ij] / 2))
+    Fix(get_centered_flux, (ij, edge_left_right[ij], le_de[ij] / 2))
 end
 
 # Makes sense for a conformal metric.
@@ -112,9 +112,9 @@ end
 # `ucov` (which has units m^2/s), or the flux, by the
 # contravariant metric factor (which has units m^-2) so that,
 # if mass is in kg, the flux and its divergence are in kg/s.
-@inl get_centered_flux(ij, left, right, le_de, mass, ucov, k) =
+@inl get_centered_flux(ij, (left, right), le_de, mass, ucov, k) =
     le_de * ucov[k, ij] * (mass[k, left] + mass[k, right])
-@inl get_centered_flux(ij, left, right, le_de, mass, ucov) =
+@inl get_centered_flux(ij, (left, right), le_de, mass, ucov) =
     le_de * ucov[ij] * (mass[left] + mass[right])
 
 #============== ∇⋅(qU) (scalar, vector -> two-form) ================#
