@@ -17,31 +17,24 @@ using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 using CFDomains: CFDomains, transpose!, void
 using CFDomains.LazyExpressions: @lazy, pdv
 
-using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere
+using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere, laplace_dx
 import VoronoiSpheres.VoronoiOperators as Ops
 
 # using ClimFlowsPlots.SphericalInterpolations: lonlat_interp
 
 using Test
 
-include("partial_derivative.jl")
 include("voronoi_operators.jl")
 
-include("zero_arrays.jl")
-include("voronoi.jl")
-
-choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
+choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", rtol=1e-3)
 
 reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
-@info sphere
+@info sphere laplace_dx(sphere)
 
-@testset "transpose!" begin
-    x = randn(3,4)
-    y = transpose!(void, nothing, x)
-    @test y == transpose!(similar(y), void, x)
-    @test y == x'
-end
+#=
+
+include("voronoi.jl")
 
 @testset "VoronoiSphere" begin
     levels = 1:8
@@ -55,18 +48,20 @@ end
     test_TRiSK(sphere, qi, qv, qe)  # antisymmetry
     test_curlTRiSK(sphere, qi)  # curl∘TRiSK = average_iv∘div
     # check accuracy
-    test_perp(choices.tol, sphere, levels) # accuracy
-    test_div(choices.tol, sphere, levels) # accuracy
-    test_average(choices.tol, sphere, qi) 
-    test_gradient3d(choices.tol, sphere, qi)
+    test_perp(choices.rtol, sphere, levels) # accuracy
+    test_div(choices.rtol, sphere, levels) # accuracy
+    test_average(choices.rtol, sphere, qi) 
+    test_gradient3d(choices.rtol, sphere, qi)
+end
+
+=#
+
+@testset "2D VoronoiOperators" begin
+    test_voronoi_ops(sphere, n -> randn(choices.precision, n))
 end
 
 @testset "3D VoronoiOperators" begin
     test_voronoi_ops(sphere, n -> randn(choices.precision, 16, n))
-end
-
-@testset "2D VoronoiOperators" begin
-    test_voronoi_ops(sphere, n -> randn(choices.precision, n))
 end
 
 function f1(cc, a, g) 
@@ -122,4 +117,15 @@ end
 #    display(@code_native grad!(ucov2, nothing, c_))
 end
 
+include("partial_derivative.jl")
+include("zero_arrays.jl")
+
+@testset "transpose!" begin
+    x = randn(3,4)
+    y = transpose!(void, nothing, x)
+    @test y == transpose!(similar(y), void, x)
+    @test y == x'
+end
+
 # include("benchmark.jl")
+

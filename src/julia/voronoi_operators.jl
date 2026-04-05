@@ -1,7 +1,6 @@
 module VoronoiOperators
 
 using Base: @propagate_inbounds as @prop
-# using Base: @inbounds as @prop
 
 using ManagedLoops: @unroll, @vec, @with
 using CFDomains.LazyOperators: LazyDiagonalOp, adj_action_in, adj_action_out, flip, set!
@@ -9,7 +8,6 @@ import VoronoiSpheres.Stencils
 
 macro inb(expr)
     esc(:(@inbounds $expr))
-#    esc(expr)
 end
 
 """
@@ -36,6 +34,10 @@ abstract type VoronoiOperator{In,Out} end
     Expr(:call, T, :action!, fields[2:end]...)
 end
 
+const Vec{F<:AbstractFloat} = AbstractVector{F}
+const VTI{N} = AbstractVector{NTuple{N, Int32}}
+const VTR{N,F<:AbstractFloat} = AbstractVector{NTuple{N, F}}
+
 #================================================================#
 #===================== VoronoiOperator{1,1} =====================#
 #================================================================#
@@ -57,14 +59,13 @@ end
 
 #========== primal => dual ==========#
 
-struct DualFromPrimal{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct DualFromPrimal{Action, F, N6, VI3<:VTI{3}, VR3<:VTR{3,F}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    dual_vertex::Matrix{Int32}
-    Avi::Matrix{F}
+    dual_vertex::VI3
+    Avi::VR3
     # for the adjoint
-    primal_deg::Vector{Int32}
-    primal_vertex::Matrix{Int32}
-    Aiv::Matrix{F}
+    primal_vertex::VI6
+    Aiv::VR6
 end
 
 @inline function apply_internal!(output, mgr, op::DualFromPrimal, input)
@@ -73,16 +74,16 @@ end
 end
 
 @inline function apply_adj_internal!(∂out, mgr, op::DualFromPrimal, ∂in, ::Nothing)
-    loop_cell(∂in, mgr, adj_action_in(op.action!), op, Stencils.average_vi_form, ∂out)
+    loop_simple(∂in, mgr, adj_action_in(op.action!), op, Stencils.average_vi_form, ∂out)
 end
 
 #========== dual => edge ==========#
 
-struct EdgeFromDual{Action} <: VoronoiOperator{1,1}
+struct EdgeFromDual{Action, VI2<:VTI{2}, VI3<:VTI{3}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    edge_down_up:: Matrix{Int32}
+    edge_down_up:: VI2
     # for the adjoint
-    dual_edge::Matrix{Int32}
+    dual_edge::VI3
 end
 
 @inline function apply_internal!(output, mgr, op::EdgeFromDual, input)
@@ -96,14 +97,14 @@ end
 
 #========== gradient ===========#
 
-struct Gradient{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct Gradient{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
     # for the adjoint
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    primal_ne::Matrix{F}
+    primal_edge::VI6
+    primal_ne::VR6
 end
+# Gradient(sphere, action! = set!) = Gradient(action!, sphere.edge, sphere.primal_edge, sphere.primal_ne)
 
 @inline function apply_internal!(output, mgr, op::Gradient, input)
     loop_simple(output, mgr, op.action!, op, Stencils.gradient, input)
@@ -111,22 +112,21 @@ end
 end
 
 @inline function apply_adj_internal!(∂out, mgr, op::Gradient, ∂in, ::Nothing)
-    loop_cell(∂in, mgr, flip(adj_action_in(op.action!)), op, Stencils.div_form, ∂out)
+    loop_simple(∂in, mgr, flip(adj_action_in(op.action!)), op, Stencils.div_form, ∂out)
 end
 
 #========== divergence ===========#
 
-struct Divergence{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct Divergence{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    primal_ne::Matrix{F}
+    primal_edge::VI6
+    primal_ne::VR6
     # for the adjoint
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
 end
 
 @inline function apply_internal!(output, mgr, op::Divergence, input)
-    loop_cell(output, mgr, op.action!, op, Stencils.div_form, input)
+    loop_simple(output, mgr, op.action!, op, Stencils.div_form, input)
     return nothing
 end
 
@@ -136,11 +136,11 @@ end
 
 #========== curl ===========#
 
-struct Curl{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct Curl{Action, VI2<:VTI{2}, VI3<:VTI{3}, VR3<:VTR{3}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    dual_edge::Matrix{Int32}
-    dual_ne::Matrix{F}
-    edge_down_up::Matrix{Int32} # for gradperp
+    dual_edge::VI3
+    dual_ne::VR3
+    edge_down_up::VI2 # for gradperp
 end
 
 @inline function apply_internal!(output, mgr, op::Curl, input)
@@ -154,49 +154,38 @@ end
 
 #========== TriSK ===========#
 
-struct TRiSK{Action, F<:AbstractFloat} <: VoronoiOperator{1,1}
+struct TRiSK{Action, N10, VI10<:VTI{N10}, VR10<:VTR{N10}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    trisk_deg::Vector{Int32}
-    trisk::Matrix{Int32}
-    wee::Matrix{F}
+    trisk::VI10
+    wee::VR10
 end
 
 @inline function apply_internal!(output, mgr, op::TRiSK, input)
-    loop_trisk(output, mgr, op.action!, op, Stencils.TRiSK, input)
+    loop_simple(output, mgr, op.action!, op, Stencils.TRiSK, input)
     return nothing
 end
 
 @inline function apply_adj_internal!(∂out, mgr, op::TRiSK, ∂in, ::Nothing)
-    loop_trisk(∂in, mgr, flip(adj_action_in(op.action!)), op, Stencils.TRiSK, ∂out)
+    loop_simple(∂in, mgr, flip(adj_action_in(op.action!)), op, Stencils.TRiSK, ∂out)
 end
 
 #========== Squared covector ===========#
 
-struct SquaredCovector{Action, F} <: VoronoiOperator{1,1}
+struct SquaredCovector{Action, VI2<:VTI{2}, VI6<:VTI, VR<:Vec} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    le_de::Vector{F}
+    le_de::VR
+    primal_edge::VI6
     # for the adjoint
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
 end
 
 @inline function apply_internal!(output, mgr, op::SquaredCovector, input)
-    loop_cell(output, mgr, op.action!, op, Stencils.squared_covector, input)
+    loop_simple(output, mgr, op.action!, op, Stencils.squared_covector, input)
     return input # will be needed by adjoint
 end
 
-@inline @inb function stencil_squared_adj(op, edge)
-    left = op.edge_left_right[1, edge] 
-    right = op.edge_left_right[2, edge] 
-    hodge = op.le_de[edge]
-    @inline value(∂K, ucov) = @inb hodge*ucov[edge]*(∂K[left]+∂K[right])
-    @inline value(∂K, ucov, k) = @inb hodge*ucov[k,edge]*(∂K[k, left]+∂K[k, right])
-    return value
-end
-
 @inline function apply_adj_internal!(∂K, mgr, op::SquaredCovector, ∂ucov, ucov)
-    loop_simple(∂ucov, mgr, adj_action_in(op.action!), op, stencil_squared_adj, ∂K, ucov)
+    loop_simple(∂ucov, mgr, adj_action_in(op.action!), op, Stencils.squared_covector_adj, ∂K, ucov)
 end
 
 #================================================================#
@@ -220,13 +209,12 @@ end
 
 #========== Centered flux ===========#
 
-struct CenteredFlux{Action, F} <: VoronoiOperator{1,2}
+struct CenteredFlux{Action, F, VR<:Vec{F}, VI2<:VTI{2}, VI6<:VTI} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    le_de::Vector{F}
-    edge_left_right::Matrix{Int32}
+    le_de::VR
+    edge_left_right::VI2
     # for adjoint
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
+    primal_edge::VI6
 end
 
 @inline function apply_internal!(output, mgr, op::CenteredFlux, m, ucov)
@@ -235,62 +223,59 @@ end
 end
 
 @inline function apply_adj_internal!(∂F, mgr, op::CenteredFlux, ∂m, ∂ucov, (m, ucov))
-    loop_cell(∂m, mgr, adj_action_in(op.action!), op, Stencils.dot_product_form, ucov, ∂F)
+    loop_simple(∂m, mgr, adj_action_in(op.action!), op, Stencils.dot_product_form, ucov, ∂F)
     loop_simple(∂ucov, mgr, adj_action_in(op.action!), op, Stencils.centered_flux, m, ∂F)
 end
 
 #========== Energy-conserving TRiSK ===========#
 
-struct EnergyTRiSK{Action, F} <: VoronoiOperator{1,2}
+struct EnergyTRiSK{Action, N10, VI10<:VTI{N10}, VR10<:VTR{N10}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    trisk_deg::Vector{Int32}
-    trisk::Matrix{Int32}
-    wee::Matrix{F}
+    trisk::VI10
+    wee::VR10
 end
 
 @inline function apply_internal!(ucov, mgr, op::EnergyTRiSK, U, q)
-    loop_trisk(ucov, mgr, op.action!, op, Stencils.TRiSK, U, q)
+    loop_simple(ucov, mgr, op.action!, op, Stencils.TRiSK, U, q)
     return U, q
 end
 
 @inline function apply_adj_internal!(∂ucov, mgr, op::EnergyTRiSK, ∂U, ∂q, (U,q))
-    loop_trisk(∂U, mgr, flip(adj_action_in(op.action!)), op, Stencils.TRiSK, ∂ucov, q)
-    loop_trisk(∂q, mgr, adj_action_in(op.action!), op, Stencils.cross_product, U, ∂ucov)
+    loop_simple(∂U, mgr, flip(adj_action_in(op.action!)), op, Stencils.TRiSK, ∂ucov, q)
+    loop_simple(∂q, mgr, adj_action_in(op.action!), op, Stencils.cross_product, U, ∂ucov)
 end
 
 #========== Centered flux divergence ===========#
 
-struct DivCenteredFlux{Action, F<:AbstractFloat} <: VoronoiOperator{1,2}
+struct DivCenteredFlux{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    primal_neighbour::Matrix{Int32}
-    primal_ne::Matrix{F}
+    primal_edge::VI6
+    primal_neighbour::VI6
+    primal_ne::VR6
     # for the adjoint
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
 end
 
 @inline function apply_internal!(divqF, mgr, op::DivCenteredFlux, q, F)
-    loop_cell(divqF, mgr, op.action!, op, Stencils.div_centered_flux, q, F)
+    loop_simple(divqF, mgr, op.action!, op, Stencils.div_centered_flux, q, F)
     return q, F
 end
 
 @inline function apply_adj_internal!(∂divqF, mgr, op::DivCenteredFlux, ∂q, ∂F, (q, F))
     action! = flip(adj_action_in(op.action!))
     loop_simple(∂F, mgr, action!, op, Stencils.mul_grad, q, ∂divqF)
-    loop_cell(∂q, mgr, action!, op, Stencils.dot_grad, F, ∂divqF)
+    loop_simple(∂q, mgr, action!, op, Stencils.dot_grad, F, ∂divqF)
 end
 
 #========== Multiplied gradient ===========#
 
-struct MulGradient{Action, F<:AbstractFloat} <: VoronoiOperator{1,2}
+struct MulGradient{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
-    edge_left_right::Matrix{Int32}
+    edge_left_right::VI2
     # for the adjoint
-    primal_deg::Vector{Int32}
-    primal_edge::Matrix{Int32}
-    primal_neighbour::Matrix{Int32}
-    primal_ne::Matrix{F}
+    primal_edge::VI6
+    primal_neighbour::VI6
+    primal_ne::VR6
 end
 
 @inline function apply_internal!(u, mgr, op::MulGradient, a, b)
@@ -300,8 +285,8 @@ end
 
 @inline function apply_adj_internal!(∂u, mgr, op::MulGradient, ∂a, ∂b, (a,b))
     action! = adj_action_in(op.action!)
-    loop_cell(∂a, mgr, action!, op, Stencils.dot_grad, ∂u, b)
-    loop_cell(∂b, mgr, flip(action!), op, Stencils.div_centered_flux, a, ∂u)
+    loop_simple(∂a, mgr, action!, op, Stencils.dot_grad, ∂u, b)
+    loop_simple(∂b, mgr, flip(action!), op, Stencils.div_centered_flux, a, ∂u)
 end
 
 #=======================================================#
@@ -360,118 +345,5 @@ end
     end
     return nothing
 end
-
-@inline loop_cell(output::AbstractArray, args...) = loop_cell(rank(output), output, args...)
-
-@inline function loop_cell(::Val{1}, output, mgr, action!, op, stencil, inputs...)
-    @inb for cell in eachindex(output)
-        deg = op.primal_deg[cell]
-        @unroll deg in 5:7 begin
-            st = stencil(op, cell, Val(deg))
-            action!(output, st(inputs...), cell)
-        end
-    end
-    return nothing
-end
-
-@inline function loop_cell(::Val{2}, output, mgr, action!, op, stencil, inputs...)
-    @with mgr, 
-    let (krange, irange) = axes(output)
-        @inb for cell in irange
-            deg = op.primal_deg[cell]
-            @unroll deg in 5:7 begin
-                st = stencil(op, cell, Val(deg))
-                @vec for k in krange
-                    action!(output, st(inputs..., k), k, cell)
-                end
-            end
-        end
-    end
-    return nothing
-end
-
-@inline function loop_cell(::Val{3}, output, mgr, action!, op, stencil, inputs...)
-    nl = Int32(size(output,1)*size(output,2)) # merged axis
-    @with mgr, 
-    let (lrange, irange) = (1:nl, axes(output, 3))
-        @inb for cell in irange
-            deg = op.primal_deg[cell]
-            @unroll deg in 5:7 begin
-                st = stencil(op, cell, Val(deg))
-                @vec for l in lrange
-                    k = MergedIndex(l, nl)
-                    action!(output, st(inputs..., k), k, cell)
-                end
-            end
-        end
-    end
-    return nothing
-end
-
-@inline loop_trisk(output::AbstractArray, args...) = loop_trisk(rank(output), output, args...)
-
-@inline function loop_trisk(::Val{1}, output, mgr, action!, op, stencil, inputs...)
-    @with mgr,
-    let irange = eachindex(output)
-        @inb for edge in irange
-            deg = op.trisk_deg[edge]
-            @unroll deg in 9:11 begin
-                st = stencil(op, edge, Val(deg))
-                action!(output, st(inputs...), edge)
-            end
-        end
-    end
-    return nothing
-end
-
-@inline function loop_trisk(::Val{2}, output, mgr, action!, op, stencil, inputs...)
-    @with mgr, 
-    let (krange, irange) = axes(output)
-        @inb for edge in irange
-            deg = op.trisk_deg[edge]
-            @unroll deg in 9:11 begin
-                st = stencil(op, edge, Val(deg))
-                @vec for k in krange
-                    action!(output, st(inputs..., k), k, edge)
-                end
-            end
-        end
-    end
-    return nothing
-end
-
-@inline function loop_trisk(::Val{3}, output, mgr, action!, op, stencil, inputs...)
-    nl = Int32(size(output,1)*size(output,2)) # merged axis
-    @with mgr, 
-    let (lrange, irange) = (1:nl, axes(output, 3))
-        @inb for edge in irange
-            deg = op.trisk_deg[edge]
-            @unroll deg in 9:11 begin
-                st = stencil(op, edge, Val(deg))
-                @vec for l in lrange
-                    k = MergedIndex(l, nl)
-                    action!(output, st(inputs..., k), k, edge)
-                end
-            end
-        end
-    end
-    return nothing
-end
-
-
-#=
-#===================== automatic partial derivatives =================#
-
-"""
-    fa = pdv(fun, a)
-    fa, fb = pdv(fun, a, b)
-    fa, fb, fc = pdv(fun, a, b, c)
-
-Return the partial derivatives of scalar function `fun` evaluated at input `a, ...`.
-*This function is implemented only when the package ForwardDiff is loaded*
-either directly from the main program or via some dependency.
-"""
-function pdv end
-=#
 
 end

@@ -6,30 +6,33 @@ macro fields(expr)
 end
 
 struct VoronoiSphere{
-    F,
+    F<:AbstractFloat,
     VI<:AbstractVector{Int32},  # Vectors of integers
-    MI<:AbstractMatrix{Int32},  # Matrices of integers
     VR<:AbstractVector{F},      # Vectors of reals
-    MR<:AbstractMatrix{F},      # Matrices of reals
+    VI2, VI3, VR3, VI4, VR4, VI6, VR6, VI10, VR10,
     AR<:AbstractArray{F,3},     # 3D array of reals
-    VP<:AbstractVector{NTuple{3,F}}, # Vectors of 3D points
     MP<:AbstractMatrix{NTuple{3,F}}, # Matrices of 3D points
 } <: UnstructuredDomain
     @fields (primal_num, dual_num, edge_num)::Int32
     @fields (primal_deg, dual_deg, trisk_deg)::VI
-    @fields (primal_edge, primal_vertex, dual_edge, dual_vertex)::MI
-    @fields (edge_left_right, edge_down_up, trisk, edge_kite, primal_neighbour)::MI
     @fields (Ai, lon_i, lat_i, Av, lon_v, lat_v)::VR
     @fields (le, de, le_de, lon_e, lat_e, angle_e)::VR
-    @fields (primal_bounds_lon, primal_bounds_lat, dual_bounds_lon, dual_bounds_lat)::MR
-    @fields (Riv2, Aiv, Avi, wee, edge_perp, primal_ne, dual_ne)::MR
+    @fields (edge_left_right, edge_down_up)::VI2
+    @fields (dual_edge, dual_vertex)::VI3
+    @fields (Avi, Riv2, dual_ne, dual_bounds_lon, dual_bounds_lat)::VR3
+    edge_kite ::VI4
+    edge_perp :: VR4
+    @fields (primal_edge, primal_vertex, primal_neighbour)::VI6
+    @fields (primal_ne, Aiv, primal_bounds_lon, primal_bounds_lat)::VR6
+    trisk :: VI10
+    wee :: VR10
     primal_perot_cov::AR
     primal_grad3d::MP
     # computed
     inv_Ai::VR
-    @fields (xyz_i, elon_i, elat_i)::VP
-    @fields (xyz_e, elon_e, elat_e, normal_e, tangent_e)::VP
-    @fields (xyz_v, elon_v, elat_v)::VP
+    @fields (xyz_i, elon_i, elat_i)::VR3
+    @fields (xyz_e, elon_e, elat_e, normal_e, tangent_e)::VR3
+    @fields (xyz_v, elon_v, elat_v)::VR3
     @fields (cen2edge, cen2vertex)::MP
 end
 const VSph = VoronoiSphere
@@ -85,9 +88,19 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     data.cen2edge = center_to_edge(data.xyz_i, data.xyz_e, data.primal_deg, data.primal_edge)
     data.cen2vertex = center_to_edge(data.xyz_i, data.xyz_v, data.primal_deg, data.primal_vertex)
 
+    # Convert 2D arrays into vectors of tuples
+    for name in (:dual_edge, :dual_vertex, :edge_left_right, :edge_down_up, :edge_kite, :Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat)
+        data[name] = vector_of_tuples(data[name])
+    end
+    for name in (:primal_edge, :primal_vertex, :primal_neighbour, :primal_ne, :Aiv, :primal_bounds_lat, :primal_bounds_lon)
+        data[name] = vector_of_tuples(data[name], data.primal_deg)
+    end
+    for name in (:trisk, :wee)
+        data[name] = vector_of_tuples(data[name], data.trisk_deg)
+    end
+
     # Store everything into a VoronoiSphere object
-    names = fieldnames(VoronoiSphere)
-    return VoronoiSphere((crop(nums, data[name], name) for name in names)...)
+    return VoronoiSphere((crop(nums, data[name], name) for name in fieldnames(VoronoiSphere))...)
 end
 
 local_bases(lons, lats) = @. zipper = local_basis(lons, lats)
@@ -121,6 +134,27 @@ end
 @inline Base.eltype(dom::VSph) = eltype(dom.Ai)
 
 @inline primal(dom::VSph) = SubMesh{:scalar,typeof(dom)}(dom)
+
+vector_of_tuples(data::AbstractMatrix) = [ntuple(i->data[i,j], size(data,1)) for j in axes(data,2)]
+
+function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
+    for j in eachindex(degree)
+        deg = degree[j]
+        for i in deg+1:size(data,1)
+            data[i,j] = data[deg,j]
+        end
+    end
+    return vector_of_tuples(data)
+end
+function vector_of_tuples(data::AbstractMatrix{<:AbstractFloat}, degree)
+    for i in eachindex(degree)
+        deg = degree[i]
+        for j in deg+1:size(data,1)
+            data[j,i] = 0
+        end
+    end
+    return vector_of_tuples(data)
+end
 
 function crop((primal_num, dual_num, edge_num), data, name::Symbol)
     if name in (
@@ -213,162 +247,17 @@ By design, the Courant number for the wave equation with unit wave speed solved 
 """
 function laplace_dx(mesh::VoronoiSphere, mgr = nothing)
     rng = MersenneTwister(1234) # for reproducibility
-    h, u = similar(mesh.Ai), similar(mesh.le_de)
-    copy!(h, randn(rng, eltype(mesh.Ai), length(mesh.Ai)))
+    u = similar(mesh.le_de)
+    h = randn(rng, eltype(mesh.Ai), length(mesh.Ai))
+    grad! = VoronoiOperators.Gradient(mesh)
+    div! = VoronoiOperators.Divergence(mesh)
     for i = 1:20
         hmax = normL2(h)
         @. h = inv(hmax) * h
-        gradient!(mgr, u, h, mesh)
-        divergence!(mgr, h, u, mesh)
+        grad!(u, mgr, h)     # covariant
+        @. u *= mesh.le_de   # contravariant
+        div!(h, mgr, u)      # density 
+        @. h *= mesh.inv_Ai  # scalar
     end
     return inv(sqrt(normL2(h)))::eltype(mesh.le_de)
 end
-
-function gradient!(mgr, gradcov, f, mesh::VoronoiSphere)
-    left_right = mesh.edge_left_right
-    @with mgr, let ijrange = eachindex(gradcov)
-        @fast for ij in ijrange
-            gradcov[ij] = f[left_right[2, ij]] - f[left_right[1, ij]]
-        end
-    end
-end
-
-function divergence!(mgr, divu, ucov, mesh::VoronoiSphere)
-    degree, edges, signs = mesh.primal_deg, mesh.primal_edge, mesh.primal_ne
-    areas, hodges = mesh.Ai, mesh.le_de
-    @with mgr,
-    let ijrange = eachindex(divu)
-        @fast for ij in ijrange
-            deg = degree[ij]
-            @unroll deg in 5:7 divu[ij] =
-                inv(areas[ij]) * sum(
-                    (signs[e, ij] * hodges[edges[e, ij]]) * ucov[edges[e, ij]] for e = 1:deg
-                )
-        end
-    end
-end
-
-#========================== Interpolation ===========================#
-
-# First-order interpolation weighted by areas of dual cells
-primal_from_dual!(fi, fv, mesh::VoronoiSphere) =
-    primal_from_dual!(fi, fv, mesh.primal_deg, mesh.Av, mesh.primal_vertex)
-
-function primal_from_dual!(fi::AbstractVector, fv, degrees, areas, vertices)
-    @fast for ij in eachindex(degrees)
-        deg = degrees[ij]
-        Ai = sum(areas[vertices[vertex, ij]] for vertex = 1:deg)
-        fi[ij] =
-            inv(Ai) *
-            sum(areas[vertices[vertex, ij]] * fv[vertices[vertex, ij]] for vertex = 1:deg)
-    end
-    return fi
-end
-
-function primal_from_dual!(fi::AbstractMatrix, fv, degrees, areas, vertices)
-    nz = size(fi, 1)
-    @fast for ij in eachindex(degrees)
-        deg = degrees[ij]
-        inv_Ai = inv(sum(areas[vertices[vertex, ij]] for vertex = 1:deg))
-        for k = 1:nz
-            fi[k, ij] = 0
-        end
-        for vertex = 1:deg
-            vv = vertices[vertex, ij]
-            ww = areas[vv] * inv_Ai
-            for k = 1:nz
-                fi[k, ij] = muladd(ww, fv[k, vv], fi[k, ij])
-            end
-        end
-    end
-    return fi
-end
-
-primal_from_dual(fv::AbstractVector, degrees, areas, vertices) =
-    primal_from_dual!(similar(degrees, eltype(fv)), fv, degrees, areas, vertices)
-primal_from_dual(fv::AbstractMatrix, degrees, areas, vertices) = primal_from_dual!(
-    Matrix{eltype(fv)}(undef, size(fv, 1), size(degrees, 1)),
-    fv,
-    degrees,
-    areas,
-    vertices,
-)
-primal_from_dual(fv, mesh::VoronoiSphere) =
-    primal_from_dual(fv, mesh.primal_deg, mesh.Av, mesh.primal_vertex)
-
-# Perot reconstruction of vector field given covariant components
-
-function primal3D_from_cov!(
-    u::T,
-    v::T,
-    w::T,
-    ucov::T,
-    degrees,
-    edges,
-    weights,
-) where {T<:AbstractVector}
-    for ij in eachindex(u, v, w, ucov, degrees)
-        u[ij], v[ij], w[ij] = primal3D_from_cov!(ij, ucov, degree[ij], edges, weights)
-    end
-    return u, v, w
-end
-
-# x,y,z = ( coslat*coslon, coslat*sinlon, sinlat )
-# d(x,y,z)/dlon  = ( -coslat*sinlon, coslat*coslon, 0 )
-# d(x,y,w)/dlat  = ( -sinlat*coslon, -sinlat*coslon, coslat )
-# function 'fun' is applied to (ulon,ulat), see ShallowWaters.diag_ulonlat
-@inline function primal_lonlat_from_cov!(
-    fun::Fun,
-    ulon::T,
-    ulat::T,
-    ucov::T,
-    degrees,
-    edges,
-    weights,
-    coslon,
-    sinlon,
-    coslat,
-    sinlat,
-) where {Fun,T<:AbstractVector}
-    for ij in eachindex(ulon, ulat, degrees, coslon, sinlon, coslat, sinlat)
-        u, v, w = primal3D_from_cov!(ij, ucov, degrees[ij], edges, weights)
-        ulon[ij], ulat[ij] = fun(
-            ij,
-            v * coslon[ij] - u * sinlon[ij],
-            w * coslat[ij] - sinlat[ij] * (u * coslon[ij] + v * sinlon[ij]),
-        )
-    end
-    return ulon, ulat
-end
-
-@inline function primal_lonlat_from_cov!(
-    fun::Fun,
-    ulon::T,
-    ulat::T,
-    ucov::T,
-    degrees,
-    edges,
-    weights,
-    coslon,
-    sinlon,
-    coslat,
-    sinlat,
-) where {Fun,T<:AbstractMatrix}
-    for ij in eachindex(degrees, coslon, sinlon, coslat, sinlat)
-        for k in axes(ulon, 1)
-            u, v, w = primal3D_from_cov!(ij, view(ucov, k, :), degrees[ij], edges, weights)
-            ulon[k, ij], ulat[k, ij] = fun(
-                ij,
-                v * coslon[ij] - u * sinlon[ij],
-                w * coslat[ij] - sinlat[ij] * (u * coslon[ij] + v * sinlon[ij]),
-            )
-        end
-    end
-    return ulon, ulat
-end
-
-@inline primal3D_from_cov!(ij, ucov, deg, edges, weights) = (
-    sum(weights[iedge, ij, 1] * ucov[edges[iedge, ij]] for iedge = 1:deg),
-    sum(weights[iedge, ij, 2] * ucov[edges[iedge, ij]] for iedge = 1:deg),
-    sum(weights[iedge, ij, 3] * ucov[edges[iedge, ij]] for iedge = 1:deg),
-)

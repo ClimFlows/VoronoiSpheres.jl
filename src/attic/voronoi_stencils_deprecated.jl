@@ -34,14 +34,15 @@ $(INB(:divergence, :div))
 """
 divergence(vsphere) = @lhs (; inv_Ai, primal_edge, primal_ne) = vsphere
 
-@gen divergence(vsphere, ij::Int, v::Val{N}) where N = quote
+@inl function divergence(vsphere, ij::Int)
     # signs include the inv_area factor
-    inv_area = vsphere.inv_Ai[ij]
-    edges = @unroll (vsphere.primal_edge[e, ij] for e = 1:$N)
-    signs = @unroll (inv_area * vsphere.primal_ne[e, ij] for e = 1:$N)
+    edges = vsphere.primal_edge[ij]
+    signs = mul_tuple(vsphere.inv_Ai[ij], vsphere.primal_ne[ij])
     return Fix(sum_weighted, (edges, signs))
 end
-
+@gen mul_tuple(fac::F, tup::NTuple{N,F}) where {N,F} = quote
+    @unroll (fac * tup[i] for i = 1:$N)
+end
 #========================= gradient =====================#
 
 """
