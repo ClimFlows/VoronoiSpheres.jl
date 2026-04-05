@@ -102,7 +102,7 @@ $(CONTRA(:flux))
 If `ucov` is  defined with respect to a physical metric (e.g. in m²⋅s⁻¹) 
 which is conformal, multiply `cflux` by the contravariant physical 
 metric factor (in m⁻²). `mass` being e.g. in kg, on gets a `flux` 
-in kg⋅s⁻¹ which can be fed into [`divergence`](@ref).
+in kg⋅s⁻¹ which can be fed into [`div_form`](@ref) or [`div_centered_flux`](@ref).
 
 $(INB(:centered_flux, :cflux))
 """
