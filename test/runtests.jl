@@ -26,7 +26,7 @@ using Test
 
 include("voronoi_operators.jl")
 
-choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", tol=1e-3)
+choices = (precision = Float32, meshname = "uni.1deg.mesh.nc", tol=1e-3)
 
 reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
