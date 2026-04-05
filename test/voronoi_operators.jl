@@ -34,7 +34,7 @@ function test_op(q, tmp, op)
     @test grad² ≈ grad⋅grad rtol = choices.rtol
 
     run() = norm_op(q, tmp,op, Ops.apply!)
-#    display(@benchmark $run())
+    size(q,2)==1 && display(@benchmark $run())
 end
 
 # 2 inputs
@@ -77,7 +77,7 @@ function test_op(a, b, tmp, op)
     @test grad² ≈ grad⋅grad rtol=choices.rtol
 
     run() = norm_op(a, b, tmp, op, Ops.apply!)
-#    display(@benchmark $run())
+    size(a,2)==1 && display(@benchmark $run())
 end
 
 # test div with AsDensity output

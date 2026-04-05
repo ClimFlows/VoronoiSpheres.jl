@@ -71,16 +71,6 @@ squared_covector(vsphere) = @lhs (; primal_edge, le_de) = vsphere
     return Fix(sum_square, half_hodges(primal_edge[ij], le_de))
 end
 
-#=
-@inline @inb function stencil_squared_adj(op, edge) # FIXME: move to voronoi_stencils_quadratic
-    left, right = op.edge_left_right[edge] 
-    hodge = op.le_de[edge]
-    @inline value(∂K, ucov) = @inb hodge*ucov[edge]*(∂K[left]+∂K[right])
-    @inline value(∂K, ucov, k) = @inb hodge*ucov[k,edge]*(∂K[k, left]+∂K[k, right])
-    return value
-end
-=#
-
 @inl function squared_covector_adj(op, edge)
     return Fix(get_squared_covector_adj, (edge, op.edge_left_right[edge], op.le_de[edge]))
 end
