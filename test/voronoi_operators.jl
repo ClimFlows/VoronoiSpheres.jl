@@ -30,7 +30,7 @@ function test_op(q, tmp, op)
     @test grad² ≈ grad⋅grad
 
     run() = norm_op(q, tmp,op, Ops.apply!)
-    display(@benchmark $run())
+#    display(@benchmark $run())
 end
 
 # 2 inputs
@@ -69,7 +69,7 @@ function test_op(a, b, tmp, op)
     @test grad² ≈ grad⋅grad
 
     run() = norm_op(a, b, tmp, op, Ops.apply!)
-    display(@benchmark $run())
+#    display(@benchmark $run())
 end
 
 # test div with AsDensity output
@@ -112,15 +112,6 @@ function test_voronoi_ops(sphere, alloc)
     tmp_e = similar(qe)
     tmp_v = similar(qv)
 
-    # LazyDiagonalOp
-    test_norm_div(ucov, tmp_i, sphere)
-    # Linear VoronoiOperator{1,1}
-    test_op(q, tmp_v, Ops.DualFromPrimal(sphere))
-    test_op(qv, tmp_e, Ops.EdgeFromDual(sphere))
-    test_op(ucov, tmp_v, Ops.Curl(sphere))
-    test_op(q, tmp_e, Ops.Gradient(sphere))
-    test_op(ucov, tmp_i, Ops.Divergence(sphere))
-    test_op(ucov, tmp_e, Ops.TRiSK(sphere))
     # Quadratic VoronoiOperator{1,1}
     test_op(ucov, tmp_i, Ops.SquaredCovector(sphere))
     # Bilinear VoronoiOperator{1,2}
@@ -128,5 +119,14 @@ function test_voronoi_ops(sphere, alloc)
     test_op(qe, ucov, tmp_e, Ops.EnergyTRiSK(sphere))
     test_op(q, ucov, tmp_i, Ops.DivCenteredFlux(sphere))
     test_op(q, r, tmp_e, Ops.MulGradient(sphere))
+    # Linear VoronoiOperator{1,1}
+    test_op(q, tmp_v, Ops.DualFromPrimal(sphere))
+    test_op(qv, tmp_e, Ops.EdgeFromDual(sphere))
+    test_op(ucov, tmp_v, Ops.Curl(sphere))
+    test_op(q, tmp_e, Ops.Gradient(sphere))
+    test_op(ucov, tmp_i, Ops.Divergence(sphere))
+    test_op(ucov, tmp_e, Ops.TRiSK(sphere))
+    # LazyDiagonalOp
+    test_norm_div(ucov, tmp_i, sphere)
 end
 

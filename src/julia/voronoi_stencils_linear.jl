@@ -49,8 +49,8 @@ $(INB(:average_vi_form, :avg))
 """
 average_vi_form(vsphere) = @lhs (; Aiv, primal_vertex) = vsphere
 
-@inl average_vi_form((; Aiv, primal_vertex), ij::Int, N::Val) =
-    Fix(sum_weighted, Get(ij, N), primal_vertex, Aiv)
+@inl average_vi_form((; Aiv, primal_vertex), ij::Int) =
+    Fix(sum_weighted, (primal_vertex[ij], Aiv[ij]))
 
 """
     vsphere = average_ve(vsphere) # $OPTIONAL
@@ -163,7 +163,7 @@ $(INB(:gradperp, :grad))
 """
 gradperp(vsphere) = @lhs (; edge_down_up) = vsphere
 @inl gradperp(vsphere, ij::Int) =
-    Fix(get_difference, (vsphere.edge_down_up[1, ij], vsphere.edge_down_up[2, ij]))
+    Fix(get_difference, vsphere.edge_down_up[ij])
 
 #=========================== TRiSK ======================#
 

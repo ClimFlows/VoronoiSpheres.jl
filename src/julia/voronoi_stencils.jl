@@ -18,6 +18,6 @@ include("voronoi_stencils_helpers.jl")
 include("voronoi_stencils_linear.jl")
 include("voronoi_stencils_quadratic.jl")
 include("voronoi_stencils_transport.jl")
-include("voronoi_stencils_deprecated.jl")
+# include("voronoi_stencils_deprecated.jl")
 
 end
