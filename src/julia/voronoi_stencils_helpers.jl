@@ -29,6 +29,7 @@ struct Fix{Fun,Coefs}
 end
 @inl (st::Fix)(args...) = st.fun(st.coefs..., args...)
 
+#=
 struct Get{N}
     ij::Int
     Get(ij, ::Val{N}) where N = new{N}(ij)
@@ -41,6 +42,7 @@ Fix(fun, getter::Get, a, b) = Fix(fun, getter(a, b))
 @gen get_stencil(::Val{N}, ij, stencil) where {N} = quote
     @unroll (stencil[n, ij] for n = 1:$N)
 end
+=#
 
 const Ints{N} = NTuple{N, Int32}
 

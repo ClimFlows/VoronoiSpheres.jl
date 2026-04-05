@@ -17,7 +17,7 @@ using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
 using CFDomains: CFDomains, transpose!, void
 using CFDomains.LazyExpressions: @lazy, pdv
 
-using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere
+using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere, laplace_dx
 import VoronoiSpheres.VoronoiOperators as Ops
 
 # using ClimFlowsPlots.SphericalInterpolations: lonlat_interp
@@ -26,11 +26,11 @@ using Test
 
 include("voronoi_operators.jl")
 
-choices = (precision = Float32, meshname = "uni.1deg.mesh.nc", tol=1e-3)
+choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", rtol=1e-3)
 
 reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
-@info sphere
+@info sphere laplace_dx(sphere)
 
 #=
 
@@ -48,10 +48,10 @@ include("voronoi.jl")
     test_TRiSK(sphere, qi, qv, qe)  # antisymmetry
     test_curlTRiSK(sphere, qi)  # curl∘TRiSK = average_iv∘div
     # check accuracy
-    test_perp(choices.tol, sphere, levels) # accuracy
-    test_div(choices.tol, sphere, levels) # accuracy
-    test_average(choices.tol, sphere, qi) 
-    test_gradient3d(choices.tol, sphere, qi)
+    test_perp(choices.rtol, sphere, levels) # accuracy
+    test_div(choices.rtol, sphere, levels) # accuracy
+    test_average(choices.rtol, sphere, qi) 
+    test_gradient3d(choices.rtol, sphere, qi)
 end
 
 =#

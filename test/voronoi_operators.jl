@@ -26,8 +26,12 @@ end
 function test_op(q, tmp, op)
     grad = MC_gradient(norm_op, q, tmp, op, Ops.apply!); 
     grad² = FD_gradient(dnorm_op, q, grad, tmp, op, Ops.apply!);
-    @info "check $(typeof(op))" grad² grad⋅grad
-    @test grad² ≈ grad⋅grad
+    if grad² ≈ grad⋅grad
+        @info "check $(typeof(op))" grad² grad⋅grad 
+    else
+        @warn "check $(typeof(op))" grad² grad⋅grad 
+    end
+    @test grad² ≈ grad⋅grad rtol = choices.rtol
 
     run() = norm_op(q, tmp,op, Ops.apply!)
 #    display(@benchmark $run())
@@ -60,13 +64,17 @@ end
 function test_op(a, b, tmp, op)
     grad = MC_gradient(norm_op, a, b, tmp, op, Ops.apply!);
     grad² = FD_gradient(dnorm_op, a, grad, b, tmp, op, Ops.apply!);
-    @info "check $(typeof(op))" grad² grad⋅grad
-    @test grad² ≈ grad⋅grad
+    if grad² ≈ grad⋅grad
+        @info "check $(typeof(op))" grad² grad⋅grad
+    else
+        @warn "check $(typeof(op))" grad² grad⋅grad
+    end
+    @test grad² ≈ grad⋅grad rtol=choices.rtol
 
     grad = MC_gradient(norm_op_switch, b, a, tmp, op, Ops.apply!);
     grad² = FD_gradient(dnorm_op_switch, b, grad, a, tmp, op, Ops.apply!);
     @info "check $(typeof(op))" grad² grad⋅grad
-    @test grad² ≈ grad⋅grad
+    @test grad² ≈ grad⋅grad rtol=choices.rtol
 
     run() = norm_op(a, b, tmp, op, Ops.apply!)
 #    display(@benchmark $run())

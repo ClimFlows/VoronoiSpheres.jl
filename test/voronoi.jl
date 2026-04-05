@@ -82,34 +82,34 @@ function test_curlTRiSK(sphere, qi)
     @test Linf(curlUperp + divU) < 1e-12 # can we get closer to eps(Float64) ?
 end
 
-function test_perp(tol, sphere, levels)
+function test_perp(rtol, sphere, levels)
     gradz_n = [z for k in levels, (x, y, z) in sphere.normal_e] # ∇z, normal component
     gradz_t = [z for k in levels, (x, y, z) in sphere.tangent_e] # ∇z, tangential component
-    @test Linf(check_3D(perp)(sphere, gradz_n), gradz_t) < Linf(gradz_n) * tol
+    @test Linf(check_3D(perp)(sphere, gradz_n), gradz_t) < Linf(gradz_n) * rtol
     # test dot_product with same data
     check_3D(dot_product)(sphere, gradz_n)    
     check_3D(contraction)(sphere, gradz_n)    
 end
 
-function test_div(tol, sphere, levels)
+function test_div(rtol, sphere, levels)
     curlz = [z * le for k in levels, ((x, y, z), le) in zip(sphere.tangent_e, sphere.le)] # ∇z⟂, contravariant
     divcurlz = check_3D(divergence)(sphere, curlz)
-    @test  Linf(divcurlz) < tol
+    @test  Linf(divcurlz) < rtol
 end
 
-function test_gradient3d(tol, sphere, qi)
+function test_gradient3d(rtol, sphere, qi)
     # q=sinϕ, |∇q|²=cos²ϕ  ⇒  |∇q|²+q²-1 = 0
     gradq = check_3D(gradient3d)(sphere, qi)
     check = (dotprod(gq, gq) + q^2 - 1 for (q, gq) in zip(qi, gradq))
-    return Linf(check) < tol
+    return Linf(check) < rtol
 end
 
-function test_average(tol, sphere, qi)
+function test_average(rtol, sphere, qi)
     qie = check_3D(average_ie)(sphere, qi)
     qiv = check_3D(average_iv)(sphere, qi)
     qve = check_3D(average_ve)(sphere, qiv)
     check_3D(centered_flux)(sphere, qi, qie)
-    return Linf(qie, qve) < 2tol
+    return Linf(qie, qve) < 2rtol
 end
 
 dotprod(a::NTuple{3,F}, b::NTuple{3,F}) where {F} = @unroll sum(a[i] * b[i] for i = 1:3)

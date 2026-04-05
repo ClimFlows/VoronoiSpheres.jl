@@ -288,6 +288,7 @@ function laplace_dx(mesh::VoronoiSphere, mgr = nothing)
     return inv(sqrt(normL2(h)))::eltype(mesh.le_de)
 end
 
+#=
 function gradient!(mgr, gradcov, f, mesh::VoronoiSphere)
     left_right = mesh.edge_left_right
     @with mgr, let ijrange = eachindex(gradcov)
@@ -311,6 +312,7 @@ function divergence!(mgr, divu, ucov, mesh::VoronoiSphere)
         end
     end
 end
+=#
 
 #========================== Interpolation ===========================#
 
