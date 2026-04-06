@@ -18,7 +18,7 @@ using CFDomains: CFDomains, transpose!, void
 using CFDomains.LazyExpressions: @lazy, pdv
 
 using VoronoiSpheres: VoronoiSpheres, Stencils, VoronoiSphere, laplace_dx
-import VoronoiSpheres.VoronoiOperators as Ops
+import VoronoiSpheres.Operators as Ops
 
 # using ClimFlowsPlots.SphericalInterpolations: lonlat_interp
 
@@ -56,11 +56,11 @@ end
 
 =#
 
-@testset "2D VoronoiOperators" begin
+@testset "2D Operators" begin
     test_voronoi_ops(sphere, n -> randn(choices.precision, n))
 end
 
-@testset "3D VoronoiOperators" begin
+@testset "3D Operators" begin
     test_voronoi_ops(sphere, n -> randn(choices.precision, 16, n))
 end
 

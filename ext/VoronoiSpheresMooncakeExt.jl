@@ -3,8 +3,8 @@ module VoronoiSpheresMooncakeExt
 using Base: @propagate_inbounds as @prop
 using CFDomains.LazyOperators: archive, restore!
 
-import VoronoiSpheres.VoronoiOperators as Ops
-using VoronoiSpheres.VoronoiOperators: apply!, apply_adj!, apply_internal!, VoronoiOperator
+import VoronoiSpheres.Operators as Ops
+using VoronoiSpheres.Operators: apply!, apply_adj!, apply_internal!, VoronoiOperator
 
 import Mooncake
 using Mooncake: CoDual, NoTangent, NoPullback, NoFData, NoRData

@@ -1,3 +1,6 @@
+// export to SVG:
+// typst compile voronoi_adjoints.typ adjoints.svg
+
 // physics macros
 // https://typst.app/universe/package/physica/
 #import "@preview/physica:0.9.4": * 

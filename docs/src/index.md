@@ -15,8 +15,14 @@ Documentation for [VoronoiSpheres](https://github.com/ClimFlows/VoronoiSpheres.j
 Modules = [VoronoiSpheres]
 ```
 
-## Operators on Voronoi mesh
+## Operators
 
 ```@autodocs
-Modules = [VoronoiSpheres.Stencils, VoronoiSpheres.VoronoiOperators]
+Modules = [VoronoiSpheres.Operators]
+```
+
+## Stencils
+
+```@autodocs
+Modules = [VoronoiSpheres.Stencils]
 ```

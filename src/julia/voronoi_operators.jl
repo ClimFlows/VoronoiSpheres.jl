@@ -1,4 +1,4 @@
-module VoronoiOperators
+module Operators
 
 using Base: @propagate_inbounds as @prop
 
@@ -25,7 +25,30 @@ AsDensity(vsphere) = LazyDiagonalOp(vsphere.inv_Ai)
 #======================== VoronoiOperator =======================#
 #================================================================#
 
-abstract type VoronoiOperator{In,Out} end
+"""
+    abstract type VoronoiOperator{Out, In}
+
+Parent type for operators acting on fields on a VoronoiSphere, taking `In` input fields and writing into `Out` output fields.
+Objects of a concrete `Operator` subtyping `VoronoiOperator` are created by:
+
+    op! = DualFromPrimal(sphere, [action!])
+
+`op!` is callable:
+    op!(output, mgr, input)           # if op::VoronoiOperator{1,1}
+    op!(output, mgr, input1, input2)  # if op::VoronoiOperator{1,2}
+    
+`mgr` is a loop manager as defined by [`ManagedLoops`](https://github.com/ClimFlows/ManagedLoops.jl). 
+`sphere` is a VoronoiSphere or a named tuple with all the fields required by `Operator`. 
+`action!` defines the action to perform on outputs and must be chosen among four choices provided by CFDomains.LazyOperators:
+    - `set!`: write the result of the operator in the output field
+    - 'setminus!': write *minus* the result of the operator in the output field
+    - 'addto!': *add* the result of the operator to the output field
+    - 'subfrom!': *substract* the result of the operator from the output field
+
+`op!` is a lightweight struct containing only the mesh information needed by the operator and its adjoint.
+Creating `op!` is a zero-copy operation.  If `op!` is used right afterwards it might not even be allocated.
+"""
+abstract type VoronoiOperator{Out,In} end
 
 @inline (::Type{T})(sph) where { T<:VoronoiOperator } = T(sph, set!)
 
@@ -41,6 +64,16 @@ const VTR{N,F<:AbstractFloat} = AbstractVector{NTuple{N, F}}
 #================================================================#
 #===================== VoronoiOperator{1,1} =====================#
 #================================================================#
+
+OP11(op, stencil, output, input) = 
+"""
+    op! = $op(sphere, [action!])
+    op! :: VoronoiOperator{1,1}
+    op!($output, mgr, $input)
+
+Return operator `op!` which applies [`Stencils.$(string(stencil))`](@ref) to `$input`. 
+See [`VoronoiOperator`](@ref). 
+"""
 
 (op::VoronoiOperator{1,1})(output, mgr, input) = apply!(output, mgr, op, input)
 
@@ -59,6 +92,7 @@ end
 
 #========== primal => dual ==========#
 
+"$(OP11(:DualFromPrimal, :average_iv_form, :qe, :qi))"
 struct DualFromPrimal{Action, F, N6, VI3<:VTI{3}, VR3<:VTR{3,F}, VI6<:VTI{N6}, VR6<:VTR{N6,F}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     dual_vertex::VI3
@@ -79,6 +113,7 @@ end
 
 #========== dual => edge ==========#
 
+"$(OP11(:EdgeFromDual, :average_ve, :qe, :qv))"
 struct EdgeFromDual{Action, VI2<:VTI{2}, VI3<:VTI{3}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     edge_down_up:: VI2
@@ -97,6 +132,7 @@ end
 
 #========== gradient ===========#
 
+"$(OP11(:Gradient, :gradient, :gradcov, :qi))"
 struct Gradient{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     edge_left_right::VI2
@@ -117,6 +153,7 @@ end
 
 #========== divergence ===========#
 
+"$(OP11(:Divergence, :div_form, :divF, :flux))"
 struct Divergence{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     primal_edge::VI6
@@ -136,6 +173,7 @@ end
 
 #========== curl ===========#
 
+"$(OP11(:Curl, :curl, :qv, :ucov))"
 struct Curl{Action, VI2<:VTI{2}, VI3<:VTI{3}, VR3<:VTR{3}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     dual_edge::VI3
@@ -154,6 +192,7 @@ end
 
 #========== TriSK ===========#
 
+"$(OP11(:TRiSK, :TRiSK, :ucov, :flux))"
 struct TRiSK{Action, N10, VI10<:VTI{N10}, VR10<:VTR{N10}} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     trisk::VI10
@@ -171,6 +210,7 @@ end
 
 #========== Squared covector ===========#
 
+"$(OP11(:SquaredCovector, :squared_covector, :squared, :ucov))"
 struct SquaredCovector{Action, VI2<:VTI{2}, VI6<:VTI, VR<:Vec} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     le_de::VR
@@ -192,6 +232,16 @@ end
 #===================== VoronoiOperator{1,2} =====================#
 #================================================================#
 
+OP12(op, stencil, output, in1, in2) = 
+"""
+    op! = $op(sphere, [action!])
+    op! :: VoronoiOperator{1,2}
+    op!($output, mgr, $in1, $in2)
+
+Return operator `op!` which applies [`Stencils.$(string(stencil))`](@ref) to `$in1, $in2`. 
+See [`VoronoiOperator`](@ref) for a description of `mgr`, `sphere` and `action!`. 
+"""
+
 (op::VoronoiOperator{1,2})(output, mgr, in1, in2) = apply!(output, mgr, op, in1, in2)
 
 function apply!(output, mgr, stencil::VoronoiOperator{1,2}, in1, in2) 
@@ -209,6 +259,7 @@ end
 
 #========== Centered flux ===========#
 
+"$(OP12(:CenteredFlux, :centered_flux, :cflux, :m, :ucov))"
 struct CenteredFlux{Action, F, VR<:Vec{F}, VI2<:VTI{2}, VI6<:VTI} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
     le_de::VR
@@ -229,6 +280,7 @@ end
 
 #========== Energy-conserving TRiSK ===========#
 
+"$(OP12(:EnergyTRiSK, :TRiSK, :ucov, :flux, :qe))"
 struct EnergyTRiSK{Action, N10, VI10<:VTI{N10}, VR10<:VTR{N10}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
     trisk::VI10
@@ -247,6 +299,7 @@ end
 
 #========== Centered flux divergence ===========#
 
+"$(OP12(:DivCenteredFlux, :div_centered_flux, :divflux, :qi, :flux))"
 struct DivCenteredFlux{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
     primal_edge::VI6
@@ -269,6 +322,7 @@ end
 
 #========== Multiplied gradient ===========#
 
+"$(OP12(:MulGradient, :mul_grad, :agradb, :a, :b))"
 struct MulGradient{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
     edge_left_right::VI2
