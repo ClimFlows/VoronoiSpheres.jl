@@ -27,7 +27,7 @@ voronoi_curl_2D!(::Void, mgr, sphere, ucov) =
 
 function voronoi_curl_2D!(zv::AbstractVector, mgr, sphere, ucov)
     Av, sph = sphere.Av, Stencils.curl(sphere)
-    @with mgr let ijrange = eachindex(zv)
+    @with mgr, let ijrange = eachindex(zv)
         for ij in ijrange
             zv[ij] = inv(Av[ij]) * Stencils.curl(sph, ij)(ucov)
         end
@@ -40,7 +40,7 @@ voronoi_gradv_2D!(::Void, mgr, sphere, zv) =
 
 function voronoi_gradv_2D!(grad::AbstractVector, mgr, sphere, zv)
     (; edge_down_up, le_de) = sphere
-    @with mgr let ijrange = eachindex(grad)
+    @with mgr, let ijrange = eachindex(grad)
         for ij in ijrange
             ij_down, ij_up = edge_down_up[ij]
             grad[ij] = zv[ij_up] - zv[ij_down]
