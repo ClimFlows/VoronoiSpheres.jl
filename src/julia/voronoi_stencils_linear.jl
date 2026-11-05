@@ -52,6 +52,9 @@ average_vi_form(vsphere) = @lhs (; Aiv, primal_vertex) = vsphere
 @inl average_vi_form((; Aiv, primal_vertex), ij::Int) =
     Fix(sum_weighted, (primal_vertex[ij], Aiv[ij]))
 
+@inl average_vi_form((; Aiv, primal_vertex), ij::Int, ::Val) =
+    Fix(sum_weighted, (primal_vertex[ij], Aiv[ij]))
+
 """
     vsphere = average_ve(vsphere) # $OPTIONAL
     avg = average_ve(vsphere, edge)
@@ -107,6 +110,9 @@ div_form(vsphere) = @lhs (; primal_edge, primal_ne) = vsphere
 
 @inl div_form((; primal_edge, primal_ne), ij::Integer) =
     Fix(sum_weighted, (primal_edge[ij], primal_ne[ij]))
+
+@inl div_form((; primal_edge, primal_ne), ij::Int, N::Val) =
+    Fix(sum_weighted, Get(ij, N), primal_edge, primal_ne)
 
 #========================= curl =====================#
 
@@ -189,6 +195,8 @@ $(INB(:TRiSK, :trisk))
 TRiSK(vsphere) = @lhs (; trisk, wee) = vsphere
 
 @inl TRiSK((; trisk, wee), edge) = Fix(sum_TRiSK1, (edge, trisk[edge], wee[edge]))
+
+@inl TRiSK((; trisk, wee), edge, ::Val) = Fix(sum_TRiSK1, (edge, trisk[edge], wee[edge]))
 
 #==================== leaf expressions ======================#
 

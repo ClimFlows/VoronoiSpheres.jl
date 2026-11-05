@@ -34,13 +34,13 @@ gradperp(sphere, qv) = apply(edges, Stencils.gradperp, sphere, qv)
 perp(sphere, un) = apply(edges, Stencils.perp, sphere, un)
 centered_flux(sphere, qi, un) = apply(edges, Stencils.centered_flux, sphere, qi, un)
 curl(sphere, ue) = apply(duals, Stencils.curl, sphere, ue)
-average_iv(sphere, qi) = apply(duals, Stencils.average_iv, sphere, qi)
+average_iv(sphere, qi) = apply(duals, Stencils.average_iv_form, sphere, qi)
 average_ie(sphere, qi) = apply(edges, Stencils.average_ie, sphere, qi)
 average_ve(sphere, qv) = apply(edges, Stencils.average_ve, sphere, qv)
-divergence(sphere, U) = apply(cells, Stencils.divergence, sphere, U)
+divergence(sphere, U) = apply(cells, Stencils.div_form, sphere, U)
 gradient3d(sphere, U) = apply_primal(Stencils.gradient3d, sphere, U)
-dot_product(sphere, U) = apply_primal(Stencils.dot_product, sphere, U, U)
-contraction(sphere, U) = apply_primal(Stencils.contraction, sphere, U, U)
+dot_product(sphere, U) = apply(cells, Stencils.dot_product_form, sphere, U, U)
+squared_covector(sphere, U) = apply(cells, Stencils.squared_covector, sphere, U)
 TRiSK(sphere, args...) = apply_trisk(Stencils.TRiSK, sphere, args...)
 
 # error measures
@@ -78,7 +78,10 @@ function test_curlTRiSK(sphere, qi)
     U = check_3D(gradient)(sphere, qi) .* transpose(sphere.le_de) # cov => contra
     Uperp = TRiSK(sphere, U)
     curlUperp = check_3D(curl)(sphere, Uperp) ./ transpose(sphere.Av)
-    divU = check_3D(average_iv)(sphere, divergence(sphere, U))
+    # `divergence` returns a two-form, divide by the primal cell area to get a scalar;
+    # `average_iv` returns the integral over the dual cell, divide by the dual area
+    divU = check_3D(average_iv)(sphere, divergence(sphere, U) ./ transpose(sphere.Ai)) ./
+           transpose(sphere.Av)
     @test Linf(curlUperp + divU) < 1e-12 # can we get closer to eps(Float64) ?
 end
 
@@ -87,8 +90,8 @@ function test_perp(rtol, sphere, levels)
     gradz_t = [z for k in levels, (x, y, z) in sphere.tangent_e] # ∇z, tangential component
     @test Linf(check_3D(perp)(sphere, gradz_n), gradz_t) < Linf(gradz_n) * rtol
     # test dot_product with same data
-    check_3D(dot_product)(sphere, gradz_n)    
-    check_3D(contraction)(sphere, gradz_n)    
+    check_3D(dot_product)(sphere, gradz_n)
+    check_3D(squared_covector)(sphere, gradz_n)
 end
 
 function test_div(rtol, sphere, levels)
