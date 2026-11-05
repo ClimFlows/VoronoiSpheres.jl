@@ -34,14 +34,12 @@ end
 (getter::Get)(s1, s2) = getter(s1), getter(s2)
 Fix(fun, getter::Get, a, b) = Fix(fun, getter(a, b))
 
-# `stencil` may be a vector of tuples (e.g. primal_neighbour) or a matrix
-# of tuples (e.g. primal_grad3d).
-@gen get_stencil(::Val{N}, ij, stencil::AbstractVector) where {N} = quote
+# Stencil data is stored as a 1D array of fixed-size objects indexed by mesh
+# element: either a tuple of indices/weights, or a tuple of tuples (e.g.
+# `primal_grad3d[cell]` is a tuple of 3D vectors). Building the NTuple{N}
+# explicitly keeps the return type independent of the length of `stencil[ij]`.
+@gen get_stencil(::Val{N}, ij, stencil) where {N} = quote
     @unroll (stencil[ij][n] for n = 1:$N)
-end
-
-@gen get_stencil(::Val{N}, ij, stencil::AbstractMatrix) where {N} = quote
-    @unroll (stencil[n, ij] for n = 1:$N)
 end
 
 const Ints{N} = NTuple{N, Int32}

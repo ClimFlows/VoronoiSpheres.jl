@@ -12,6 +12,7 @@ struct VoronoiSphere{
     VI2, VI3, VR3, VI4, VR4, VI6, VR6, VI10, VR10,
     AR<:AbstractArray{F,3},     # 3D array of reals
     MP<:AbstractMatrix{NTuple{3,F}}, # Matrices of 3D points
+    VG,                         # Vector of tuples of 3D points
 } <: UnstructuredDomain
     @fields (primal_num, dual_num, edge_num)::Int32
     @fields (primal_deg, dual_deg, trisk_deg)::VI
@@ -27,7 +28,7 @@ struct VoronoiSphere{
     trisk :: VI10
     wee :: VR10
     primal_perot_cov::AR
-    primal_grad3d::MP
+    primal_grad3d::VG
     # computed
     inv_Ai::VR
     @fields (xyz_i, elon_i, elat_i)::VR3
@@ -74,9 +75,9 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     end
     nums = (data.primal_num, data.dual_num, data.edge_num)
 
-    # Convert 3D vectors to tuples
+    # Convert 3D vectors to tuples, then group them per cell
     vec2tup(x) = [ map(dim->x[i,j,dim], (1,2,3)) for i in axes(x, 1), j in axes(x, 2)]
-    data.primal_grad3d = vec2tup(data.primal_grad3d)
+    data.primal_grad3d = vector_of_tuples(vec2tup(data.primal_grad3d), data.primal_deg)
 
     # Extra stuff which can be computed without worrying about halos
     data.inv_Ai = inv.(data.Ai)
@@ -89,7 +90,7 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     data.cen2vertex = center_to_edge(data.xyz_i, data.xyz_v, data.primal_deg, data.primal_vertex)
 
     # Convert 2D arrays into vectors of tuples
-    for name in (:dual_edge, :dual_vertex, :edge_left_right, :edge_down_up, :edge_kite, :Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat)
+    for name in (:dual_edge, :dual_vertex, :edge_left_right, :edge_down_up, :edge_kite, :edge_perp, :Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat)
         data[name] = vector_of_tuples(data[name])
     end
     for name in (:primal_edge, :primal_vertex, :primal_neighbour, :primal_ne, :Aiv, :primal_bounds_lat, :primal_bounds_lon)
@@ -137,8 +138,11 @@ end
 
 vector_of_tuples(data::AbstractMatrix) = [ntuple(i->data[i,j], size(data,1)) for j in axes(data,2)]
 
-function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
-    for j in eachindex(degree)
+# Pad each column to the maximum degree so that every element is a fixed-size
+# tuple. Integer matrices and matrices of fixed-size objects (e.g. 3D vectors
+# stored as NTuple{3}) repeat the last valid entry; float matrices zero-pad.
+function vector_of_tuples(data::AbstractMatrix, degree)
+    for j in axes(data, 2)
         deg = degree[j]
         for i in deg+1:size(data,1)
             data[i,j] = data[deg,j]
@@ -146,6 +150,7 @@ function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
     end
     return vector_of_tuples(data)
 end
+
 function vector_of_tuples(data::AbstractMatrix{<:AbstractFloat}, degree)
     for i in eachindex(degree)
         deg = degree[i]

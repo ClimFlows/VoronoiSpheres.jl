@@ -20,7 +20,7 @@ perp(vsphere) = @lhs (; edge_kite, edge_perp) = vsphere
 
 @inl function perp(vsphere, edge) 
     edges = @unroll (vsphere.edge_kite[edge][ind] for ind = 1:4)
-    coefs = @unroll (vsphere.edge_perp[ind, edge] for ind = 1:4)
+    coefs = @unroll (vsphere.edge_perp[edge][ind] for ind = 1:4)
     return Fix(sum_weighted, (edges, coefs))
 end
 
