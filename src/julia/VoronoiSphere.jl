@@ -24,7 +24,7 @@ struct VoronoiSphere{
     edge_kite ::VI4
     edge_perp :: VR4
     @fields (primal_edge, primal_vertex, primal_neighbour)::VI6
-    @fields (primal_ne, Aiv, primal_bounds_lon, primal_bounds_lat)::VR6
+    @fields (primal_ne, primal_hodges, Aiv, primal_bounds_lon, primal_bounds_lat)::VR6
     trisk :: VI10
     wee :: VR10
     primal_perot_cov::AR
@@ -95,6 +95,15 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     end
     for name in (:primal_edge, :primal_vertex, :primal_neighbour, :primal_ne, :Aiv, :primal_bounds_lat, :primal_bounds_lon)
         data[name] = vector_of_tuples(data[name], data.primal_deg)
+    end
+
+    # Half edge-length weights, zero-padded. Padding in `primal_edge` repeats
+    # the last valid edge, so zero the weight of every repeated entry.
+    data.primal_hodges = map(data.primal_edge) do edges
+        ntuple(length(edges)) do e
+            edge = edges[e]
+            any(==(edge), edges[1:e-1]) ? zero(eltype(data.le_de)) : data.le_de[edge] / 2
+        end
     end
     for name in (:trisk, :wee)
         data[name] = vector_of_tuples(data[name], data.trisk_deg)
@@ -178,6 +187,7 @@ function crop((primal_num, dual_num, edge_num), data, name::Symbol)
         :primal_edge,
         :primal_vertex,
         :primal_ne,
+        :primal_hodges,
         :Ai,
         :lon_i,
         :lat_i,
