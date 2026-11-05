@@ -4,7 +4,7 @@ using MutatingOrNot: void, Void
 using ManagedLoops: @loops, @unroll, @with
 using Random: MersenneTwister
 
-using CFDomains: CFDomains, UnstructuredDomain, @fast, Shell, HyperDiffusion
+using CFDomains: CFDomains, UnstructuredDomain, @fast, Shell, VHLayout, HyperDiffusion
 import CFDomains: allocate_field, scratch_hyperdiff
 
 include("julia/Zippers.jl") # for zipped broadcast
