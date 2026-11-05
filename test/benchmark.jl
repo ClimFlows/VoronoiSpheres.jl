@@ -4,7 +4,7 @@ function trisk_one_step(mgr, qU, sphere, q, U)
         @inbounds for ij in axes(qU, 2)
             deg = sphere.trisk_deg[ij]
             @unroll deg in 9:10 begin
-                trisk = Stencils.TRiSK(sphere, ij, Val(deg))
+                trisk = Stencils.TRiSK(sphere, ij)
                 @vec for k in krange
                     qU[k, ij] = trisk(U, q, k)
                 end

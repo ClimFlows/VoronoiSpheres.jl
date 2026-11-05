@@ -25,23 +25,6 @@ struct Fix{Fun,Coefs}
 end
 @inl (st::Fix)(args...) = st.fun(st.coefs..., args...)
 
-struct Get{N}
-    ij::Int
-    Get(ij, ::Val{N}) where N = new{N}(ij)
-    Get(ij, N::Int) = new{N}(ij)
-end
-(getter::Get{N})(stencil) where N = get_stencil(Val{N}(), getter.ij, stencil)
-(getter::Get)(s1, s2) = getter(s1), getter(s2)
-Fix(fun, getter::Get, a, b) = Fix(fun, getter(a, b))
-
-# Stencil data is stored as a 1D array of fixed-size objects indexed by mesh
-# element: either a tuple of indices/weights, or a tuple of tuples (e.g.
-# `primal_grad3d[cell]` is a tuple of 3D vectors). Building the NTuple{N}
-# explicitly keeps the return type independent of the length of `stencil[ij]`.
-@gen get_stencil(::Val{N}, ij, stencil) where {N} = quote
-    @unroll (stencil[ij][n] for n = 1:$N)
-end
-
 const Ints{N} = NTuple{N, Int32}
 
 # for docstrings

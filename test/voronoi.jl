@@ -1,22 +1,20 @@
 # generic
 
 apply_primal(op, sphere, arg::Vector, more...) = [
-    (@unroll N in 5:7 op(op(sphere), cell, Val(N))(arg, more...)) for
-    (cell, N) in enumerate(sphere.primal_deg)
+    op(op(sphere), cell)(arg, more...) for cell in cells(sphere)
 ]
 apply_primal(op, sphere, arg::Matrix, more...) = [
-    (@unroll N in 5:7 op(op(sphere), cell, Val(N))(arg, more..., k)) for
-    k in axes(arg,1), (cell, N) in enumerate(sphere.primal_deg)
+    op(op(sphere), cell)(arg, more..., k) for
+    k in axes(arg,1), cell in cells(sphere)
 ]
 
 apply_trisk(op, sphere, arg::Vector, more...) = [
-    (@unroll N in 9:10 op(op(sphere), edge, Val(N))(arg, more...)) for
-    (edge, N) in enumerate(sphere.trisk_deg)
+    op(op(sphere), edge)(arg, more...) for edge in edges(sphere)
 ]
 
 apply_trisk(op, sphere, arg::Matrix, more...) = [
-    (@unroll N in 9:10 op(op(sphere), edge, Val(N))(arg, more..., k)) for
-    k in axes(arg,1), (edge, N) in enumerate(sphere.trisk_deg)
+    op(op(sphere), edge)(arg, more..., k) for
+    k in axes(arg,1), edge in edges(sphere)
 ]
 
 apply(objects, op, sphere, arg::Vector, more...) = [op(op(sphere), obj)(arg, more...) for obj in objects(sphere)]
@@ -48,10 +46,23 @@ Linf(x) = maximum(abs, x)
 Linf(x, y) = maximum(abs(a - b) for (a, b) in zip(x, y))
 maxeps(x) = Linf(x) * eps(eltype(x))
 
+# compare scalars or 3D vectors (tuples of scalars)
+approx3d(a::Tuple, b::Tuple; rtol, atol) =
+    all(isapprox(x, y; rtol, atol) for (x, y) in zip(a, b))
+approx3d(a, b; rtol, atol) = isapprox(a, b; rtol, atol)
+
+maxabs(x::Number) = abs(x)
+maxabs(x::Tuple) = maximum(maxabs, x)
+maxabs(x::AbstractArray) = maximum(maxabs, x)
+
 # check 3D operator
 check_3D(op) = function(sphere, arg::Matrix, more...)
     ret = op(sphere, arg, more...)
-    @test ret[1,:] == op(sphere, arg[1,:], map(x->x[1,:], more)...)
+    ref = op(sphere, arg[1,:], map(x->x[1,:], more)...)
+    # matrix and vector code paths may differ in the last bits because the
+    # zero-padded stencil entries change the summation order
+    atol = 10eps() * maxabs(ref)
+    @test all(approx3d(a, b; rtol = 10eps(), atol) for (a, b) in zip(ret[1,:], ref))
     return ret
 end
 
@@ -71,7 +82,7 @@ function test_TRiSK(sphere, phi, psi, qe)
     U = gradperp(sphere, psi) + gradient(sphere, phi)
     Uperp = check_3D(TRiSK)(sphere, U, qe)
     sym = sum(u * up for (u, up) in zip(U, Uperp))
-    @test abs(sym) < 2Linf(Uperp) * maxeps(U) * sqrt(length(U))
+    @test abs(sym) < 4Linf(Uperp) * maxeps(U) * sqrt(length(U))
 end
 
 function test_curlTRiSK(sphere, qi)

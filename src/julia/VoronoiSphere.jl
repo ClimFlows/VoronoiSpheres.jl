@@ -139,13 +139,24 @@ end
 vector_of_tuples(data::AbstractMatrix) = [ntuple(i->data[i,j], size(data,1)) for j in axes(data,2)]
 
 # Pad each column to the maximum degree so that every element is a fixed-size
-# tuple. Integer matrices and matrices of fixed-size objects (e.g. 3D vectors
-# stored as NTuple{3}) repeat the last valid entry; float matrices zero-pad.
-function vector_of_tuples(data::AbstractMatrix, degree)
+# tuple. Padding must be neutral: indices are repeated (a valid index), while
+# weights and gradient vectors are zeroed. This way the full padded tuple can
+# be used without knowing the actual degree of the element.
+function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
     for j in axes(data, 2)
         deg = degree[j]
         for i in deg+1:size(data,1)
             data[i,j] = data[deg,j]
+        end
+    end
+    return vector_of_tuples(data)
+end
+
+function vector_of_tuples(data::AbstractMatrix{<:NTuple{3,F}}, degree) where {F}
+    for j in axes(data, 2)
+        deg = degree[j]
+        for i in deg+1:size(data,1)
+            data[i,j] = (zero(F), zero(F), zero(F))
         end
     end
     return vector_of_tuples(data)
