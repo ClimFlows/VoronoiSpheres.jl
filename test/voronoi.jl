@@ -59,10 +59,11 @@ maxabs(x::AbstractArray) = maximum(maxabs, x)
 check_3D(op) = function(sphere, arg::Matrix, more...)
     ret = op(sphere, arg, more...)
     ref = op(sphere, arg[1,:], map(x->x[1,:], more)...)
-    # matrix and vector code paths may differ in the last bits because the
-    # zero-padded stencil entries change the summation order
-    atol = 10eps() * maxabs(ref)
-    @test all(approx3d(a, b; rtol = 10eps(), atol) for (a, b) in zip(ret[1,:], ref))
+    # @unroll uses muladd: fusion may differ between vector and matrix paths.
+    # Compare at machine roundoff while retaining the optimized kernels.
+    rtol = 10eps(eltype(arg))
+    atol = rtol * maxabs(ref)
+    @test all(approx3d(a, b; rtol, atol) for (a, b) in zip(ret[1,:], ref))
     return ret
 end
 
@@ -81,8 +82,13 @@ end
 function test_TRiSK(sphere, phi, psi, qe)
     U = gradperp(sphere, psi) + gradient(sphere, phi)
     Uperp = check_3D(TRiSK)(sphere, U, qe)
-    sym = sum(u * up for (u, up) in zip(U, Uperp))
-    @test abs(sym) < 4Linf(Uperp) * maxeps(U) * sqrt(length(U))
+    # Layers are independent. Summing identical roundoff errors over layers
+    # grows linearly, whereas a sqrt(total length) bound grows sublinearly.
+    for k in axes(U, 1)
+        u, uperp = view(U, k, :), view(Uperp, k, :)
+        sym = sum(a * b for (a, b) in zip(u, uperp))
+        @test abs(sym) < 2Linf(uperp) * maxeps(u) * sqrt(length(u))
+    end
 end
 
 function test_curlTRiSK(sphere, qi)
@@ -115,15 +121,16 @@ function test_gradient3d(rtol, sphere, qi)
     # q=sinϕ, |∇q|²=cos²ϕ  ⇒  |∇q|²+q²-1 = 0
     gradq = check_3D(gradient3d)(sphere, qi)
     check = (dotprod(gq, gq) + q^2 - 1 for (q, gq) in zip(qi, gradq))
-    return Linf(check) < rtol
+    @test Linf(check) < rtol
 end
 
 function test_average(rtol, sphere, qi)
     qie = check_3D(average_ie)(sphere, qi)
-    qiv = check_3D(average_iv)(sphere, qi)
+    # average_iv_form integrates over a dual cell; average_ve takes a scalar.
+    qiv = check_3D(average_iv)(sphere, qi) ./ transpose(sphere.Av)
     qve = check_3D(average_ve)(sphere, qiv)
     check_3D(centered_flux)(sphere, qi, qie)
-    return Linf(qie, qve) < 2rtol
+    @test Linf(qie, qve) < 2rtol
 end
 
 dotprod(a::NTuple{3,F}, b::NTuple{3,F}) where {F} = @unroll sum(a[i] * b[i] for i = 1:3)
