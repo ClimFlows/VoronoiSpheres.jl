@@ -19,8 +19,8 @@ $(INB(:perp, :op))
 perp(vsphere) = @lhs (; edge_kite, edge_perp) = vsphere
 
 @inl function perp(vsphere, edge) 
-    edges = @unroll (vsphere.edge_kite[ind, edge] for ind = 1:4)
-    coefs = @unroll (vsphere.edge_perp[ind, edge] for ind = 1:4)
+    edges = @unroll (vsphere.edge_kite[edge][ind] for ind = 1:4)
+    coefs = @unroll (vsphere.edge_perp[edge][ind] for ind = 1:4)
     return Fix(sum_weighted, (edges, coefs))
 end
 
@@ -28,7 +28,7 @@ end
 
 """
     vsphere = gradient3d(vsphere) # $OPTIONAL
-    grad = gradient3d(vsphere, cell, Val(N))
+    grad = gradient3d(vsphere, cell)
     gradq[ij] = grad(q)         # $(SINGLE(:q))
     gradq[k, ij] = grad(q, k)   # $(MULTI(:q))
 
@@ -36,17 +36,12 @@ Compute 3D gradient of `q` at $CELL of $SPH.
 $(SCALAR(:q))
 `gradq` is a 3D vector field yielding a 3-uple at each primal cell.
 
-$NEDGE
-
 $(INB(:gradient3d, :grad))
 """
 gradient3d(vsphere) = @lhs (; primal_neighbour, primal_grad3d) = vsphere
 
-@inl function gradient3d((; primal_neighbour, primal_grad3d), cell, N::Val)
-    get = Get(cell, N)
-    neighbours, grads = get(primal_neighbour, primal_grad3d)
-    return Fix(get_gradient3d, (cell, neighbours, grads))
-end
+@inl gradient3d((; primal_neighbour, primal_grad3d), cell) =
+    Fix(get_gradient3d, (cell, primal_neighbour[cell], primal_grad3d[cell]))
 
 #==================== leaf expressions ======================#
 

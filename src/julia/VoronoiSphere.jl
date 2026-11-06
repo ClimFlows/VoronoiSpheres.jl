@@ -12,6 +12,7 @@ struct VoronoiSphere{
     VI2, VI3, VR3, VI4, VR4, VI6, VR6, VI10, VR10,
     AR<:AbstractArray{F,3},     # 3D array of reals
     MP<:AbstractMatrix{NTuple{3,F}}, # Matrices of 3D points
+    VG,                         # Vector of tuples of 3D points
 } <: UnstructuredDomain
     @fields (primal_num, dual_num, edge_num)::Int32
     @fields (primal_deg, dual_deg, trisk_deg)::VI
@@ -23,11 +24,11 @@ struct VoronoiSphere{
     edge_kite ::VI4
     edge_perp :: VR4
     @fields (primal_edge, primal_vertex, primal_neighbour)::VI6
-    @fields (primal_ne, Aiv, primal_bounds_lon, primal_bounds_lat)::VR6
+    @fields (primal_ne, primal_hodges, Aiv, primal_bounds_lon, primal_bounds_lat)::VR6
     trisk :: VI10
     wee :: VR10
     primal_perot_cov::AR
-    primal_grad3d::MP
+    primal_grad3d::VG
     # computed
     inv_Ai::VR
     @fields (xyz_i, elon_i, elat_i)::VR3
@@ -74,9 +75,9 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     end
     nums = (data.primal_num, data.dual_num, data.edge_num)
 
-    # Convert 3D vectors to tuples
+    # Convert 3D vectors to tuples, then group them per cell
     vec2tup(x) = [ map(dim->x[i,j,dim], (1,2,3)) for i in axes(x, 1), j in axes(x, 2)]
-    data.primal_grad3d = vec2tup(data.primal_grad3d)
+    data.primal_grad3d = vector_of_tuples(vec2tup(data.primal_grad3d), data.primal_deg)
 
     # Extra stuff which can be computed without worrying about halos
     data.inv_Ai = inv.(data.Ai)
@@ -89,11 +90,20 @@ function VoronoiSphere(read_data::Function; prec = Float32)
     data.cen2vertex = center_to_edge(data.xyz_i, data.xyz_v, data.primal_deg, data.primal_vertex)
 
     # Convert 2D arrays into vectors of tuples
-    for name in (:dual_edge, :dual_vertex, :edge_left_right, :edge_down_up, :edge_kite, :Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat)
+    for name in (:dual_edge, :dual_vertex, :edge_left_right, :edge_down_up, :edge_kite, :edge_perp, :Avi, :Riv2, :dual_ne, :dual_bounds_lon, :dual_bounds_lat)
         data[name] = vector_of_tuples(data[name])
     end
     for name in (:primal_edge, :primal_vertex, :primal_neighbour, :primal_ne, :Aiv, :primal_bounds_lat, :primal_bounds_lon)
         data[name] = vector_of_tuples(data[name], data.primal_deg)
+    end
+
+    # Half edge-length weights, zero-padded. Padding in `primal_edge` repeats
+    # the last valid edge, so zero the weight of every repeated entry.
+    data.primal_hodges = map(data.primal_edge) do edges
+        ntuple(length(edges)) do e
+            edge = edges[e]
+            any(==(edge), edges[1:e-1]) ? zero(eltype(data.le_de)) : data.le_de[edge] / 2
+        end
     end
     for name in (:trisk, :wee)
         data[name] = vector_of_tuples(data[name], data.trisk_deg)
@@ -137,8 +147,12 @@ end
 
 vector_of_tuples(data::AbstractMatrix) = [ntuple(i->data[i,j], size(data,1)) for j in axes(data,2)]
 
+# Pad each column to the maximum degree so that every element is a fixed-size
+# tuple. Padding must be neutral: indices are repeated (a valid index), while
+# weights and gradient vectors are zeroed. This way the full padded tuple can
+# be used without knowing the actual degree of the element.
 function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
-    for j in eachindex(degree)
+    for j in axes(data, 2)
         deg = degree[j]
         for i in deg+1:size(data,1)
             data[i,j] = data[deg,j]
@@ -146,6 +160,17 @@ function vector_of_tuples(data::AbstractMatrix{<:Integer}, degree)
     end
     return vector_of_tuples(data)
 end
+
+function vector_of_tuples(data::AbstractMatrix{<:NTuple{3,F}}, degree) where {F}
+    for j in axes(data, 2)
+        deg = degree[j]
+        for i in deg+1:size(data,1)
+            data[i,j] = (zero(F), zero(F), zero(F))
+        end
+    end
+    return vector_of_tuples(data)
+end
+
 function vector_of_tuples(data::AbstractMatrix{<:AbstractFloat}, degree)
     for i in eachindex(degree)
         deg = degree[i]
@@ -162,6 +187,7 @@ function crop((primal_num, dual_num, edge_num), data, name::Symbol)
         :primal_edge,
         :primal_vertex,
         :primal_ne,
+        :primal_hodges,
         :Ai,
         :lon_i,
         :lat_i,

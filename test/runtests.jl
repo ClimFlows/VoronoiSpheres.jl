@@ -12,7 +12,7 @@ using DifferentiationInterface: Constant as Const
 
 using LoopManagers: SIMD, VectorizedCPU, MultiThread
 using ManagedLoops: @with, @vec, @unroll
-using ClimFlowsData: DYNAMICO_reader, DYNAMICO_meshfile
+using ClimFlowsData: DYNAMICO_reader, VoronoiMeshes
 
 using CFDomains: CFDomains, transpose!, void
 using CFDomains.LazyExpressions: @lazy, pdv
@@ -28,11 +28,9 @@ include("voronoi_operators.jl")
 
 choices = (precision = Float64, meshname = "uni.1deg.mesh.nc", rtol=1e-3)
 
-reader = DYNAMICO_reader(ncread, DYNAMICO_meshfile(choices.meshname))
+reader = DYNAMICO_reader(ncread, VoronoiMeshes(choices.meshname))
 sphere = VoronoiSphere(reader; prec = choices.precision)
 @info sphere laplace_dx(sphere)
-
-#=
 
 include("voronoi.jl")
 
@@ -53,8 +51,6 @@ include("voronoi.jl")
     test_average(choices.rtol, sphere, qi) 
     test_gradient3d(choices.rtol, sphere, qi)
 end
-
-=#
 
 @testset "2D Operators" begin
     test_voronoi_ops(sphere, n -> randn(choices.precision, n))

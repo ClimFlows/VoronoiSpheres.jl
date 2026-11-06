@@ -211,9 +211,10 @@ end
 #========== Squared covector ===========#
 
 "$(OP11(:SquaredCovector, :squared_covector, :squared, :ucov))"
-struct SquaredCovector{Action, VI2<:VTI{2}, VI6<:VTI, VR<:Vec} <: VoronoiOperator{1,1}
+struct SquaredCovector{Action, N6, VI2<:VTI{2}, VI6<:VTI{N6}, VR6<:VTR{N6}, VR<:Vec} <: VoronoiOperator{1,1}
     action!::Action # how to combine op(input) with output
     le_de::VR
+    primal_hodges::VR6
     primal_edge::VI6
     # for the adjoint
     edge_left_right::VI2
@@ -260,9 +261,10 @@ end
 #========== Centered flux ===========#
 
 "$(OP12(:CenteredFlux, :centered_flux, :cflux, :m, :ucov))"
-struct CenteredFlux{Action, F, VR<:Vec{F}, VI2<:VTI{2}, VI6<:VTI} <: VoronoiOperator{1,2}
+struct CenteredFlux{Action, F, VR<:Vec{F}, VI2<:VTI{2}, N6, VI6<:VTI{N6}, VR6<:VTR{N6}} <: VoronoiOperator{1,2}
     action!::Action # how to combine op(input) with output
     le_de::VR
+    primal_hodges::VR6
     edge_left_right::VI2
     # for adjoint
     primal_edge::VI6

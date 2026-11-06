@@ -37,11 +37,11 @@ $NEDGE
 
 $(INB(:dot_product_form, :dot_prod))
 """
-dot_product_form(vsphere) = @lhs (; primal_edge, le_de) = vsphere
+dot_product_form(vsphere) = @lhs (; primal_edge, primal_hodges) = vsphere
 
-@inl function dot_product_form((; primal_edge, le_de), ij) 
-    # half_hodges includes the factor 1/2 for the Perot formula
-    return Fix(sum_bilinear, half_hodges(primal_edge[ij], le_de))
+@inl function dot_product_form((; primal_edge, primal_hodges), ij) 
+    # primal_hodges includes the factor 1/2 for the Perot formula
+    return Fix(sum_bilinear, (primal_edge[ij], primal_hodges[ij]))
 end
 
 #======= u⋅u (covector -> two-form) =========#
@@ -64,11 +64,11 @@ $NEDGE
 
 $(INB(:squared_covector, :square))
 """
-squared_covector(vsphere) = @lhs (; primal_edge, le_de) = vsphere
+squared_covector(vsphere) = @lhs (; primal_edge, primal_hodges) = vsphere
 
-@inl function squared_covector((; primal_edge, le_de), ij)
-    # half_hodges includes the factor 1/2 for the Perot formula
-    return Fix(sum_square, half_hodges(primal_edge[ij], le_de))
+@inl function squared_covector((; primal_edge, primal_hodges), ij)
+    # primal_hodges includes the factor 1/2 for the Perot formula
+    return Fix(sum_square, (primal_edge[ij], primal_hodges[ij]))
 end
 
 @inl function squared_covector_adj(op, edge)
@@ -188,10 +188,6 @@ cross_product(vsphere) = @lhs (; trisk, wee) = vsphere
 
 @inl get_mul_grad(left, right, a, q) = (a[right]+a[left])*(q[right] - q[left])/2
 @inl get_mul_grad(left, right, a, q, k) = (a[k, right]+a[k, left])*(q[k, right] - q[k, left])/2
-
-@gen half_hodges(edges::NTuple{N}, le_de) where N = quote
-    edges, @unroll (le_de[edges[e]]/2 for e = 1:$N)
-end
 
 @gen sum_square(edges::Ints{N}, hodges, a) where {N} = quote
     @unroll sum(hodges[e] * (a[edges[e]]^2) for e = 1:$N)

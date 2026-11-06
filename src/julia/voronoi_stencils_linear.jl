@@ -35,15 +35,13 @@ average_iv_form(vsphere) = @lhs (; dual_vertex, Avi) = vsphere
 
 """
     vsphere = average_vi_form(vsphere) # $OPTIONAL
-    avg = avg_vi_form(vsphere, cell, Val(N))
+    avg = average_vi_form(vsphere, cell)
     qi[cell] = avg(qv) # $(SINGLE(:qv))
     qi[k, cell] = avg(qv, k)  # $(MULTI(:qv))
 
 Estimate scalar field integrated over $CELL of $SPH as an area-weighted sum of values sampled at vertices.
 $(DUALSCALAR(:qv))
 $(TWOFORM(:qi))
-
-$NEDGE
 
 $(INB(:average_vi_form, :avg))
 """
@@ -91,15 +89,13 @@ average_ev_form(vsphere) = @lhs (; dual_edge) = vsphere
 
 """
     vsphere = div_form(vsphere) # $OPTIONAL
-    divf = div_form(vsphere, cell, Val(N))
+    divf = div_form(vsphere, cell)
     dvg[cell] = divf(flux) # $(SINGLE(:flux))
     dvg[k, cell] = divf(flux, k)  # $(MULTI(:flux))
 
 Compute divergence $WRT of `flux` at $CELL of $SPH.
 $(CONTRA(:flux))
 $(TWOFORM(:dvg))
-
-$NEDGE
 
 $(INB(:div_form, :divf))
 """
@@ -169,7 +165,7 @@ gradperp(vsphere) = @lhs (; edge_down_up) = vsphere
 
 """
     vsphere = TRiSK(vsphere) # $OPTIONAL
-    trisk = TRiSK(vsphere, edge, Val(N))
+    trisk = TRiSK(vsphere, edge)
     U_perp[edge]    = trisk(U)        # linear, $(SINGLE(:U))
     U_perp[k, edge] = trisk(U, k)     # linear, $(MULTI(:U))
     qU[edge]        = trisk(U, q)     # nonlinear, single-layer
@@ -179,10 +175,6 @@ Compute TRiSK operator U⟂ or q×U at $EDGE of $SPH.
 
 $(CONTRA(:U))
 $(COV(:U_perp))
-
-`N=sphere.trisk_deg[edge]` is the number of edges involved in the TRiSK stencil
-and must be provided as a compile-time constant for performance. 
-This may be done via the macro `@unroll` from `ManagedLoops`.
 
 $(INB(:TRiSK, :trisk))
 """
