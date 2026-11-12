@@ -60,6 +60,8 @@ end
     test_voronoi_ops(sphere, n -> randn(choices.precision, 16, n))
 end
 
+include("enzyme.jl")
+
 function f1(cc, a, g) 
     @lazy c(a ; g) = a+g/2
     for i in eachindex(cc)
