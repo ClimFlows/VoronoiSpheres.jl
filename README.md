@@ -8,6 +8,10 @@
 
 ## Change Log
 
+### v0.1.8
+
+* Accept integer index types used by GPU loops in linear Voronoi stencils.
+
 ### v0.1.7
 
 * Add reverse Enzyme rules for Voronoi operators with dense CPU vectors and
