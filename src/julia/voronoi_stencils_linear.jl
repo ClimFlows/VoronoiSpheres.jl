@@ -187,6 +187,41 @@ TRiSK(vsphere) = @lhs (; trisk, wee) = vsphere
 @inl get_average(left, right, a) = (a[left] + a[right]) / 2
 @inl get_average(left, right, a, k) = (a[k, left] + a[k, right]) / 2
 
+"""
+    centered_tracer_flux(vsphere) # optional stencil data
+    stencil = centered_tracer_flux(vsphere, edge)
+    flux_tracer[k, edge] = flux[k, edge] * average_ie(q, edge)
+
+Multiply an edge flux by the centered average of a cell-centered tracer.
+"""
+centered_tracer_flux(vsphere) = @lhs (; edge_left_right) = vsphere
+
+@inl centered_tracer_flux((; edge_left_right), edge::Integer) =
+    Fix(get_centered_tracer_flux, (edge, edge_left_right[edge]))
+
+@inl get_centered_tracer_flux(edge, (left, right), flux, q, k) =
+    flux[k, edge] * (q[k, left] + q[k, right]) / 2
+
+@inl get_centered_tracer_flux(edge, (left, right), flux, q) =
+    flux[edge] * (q[left] + q[right]) / 2
+
+centered_tracer_flux_adj_flux(vsphere) = @lhs (; edge_left_right) = vsphere
+
+@inl centered_tracer_flux_adj_flux((; edge_left_right), edge::Integer) =
+    Fix(get_centered_tracer_flux_adj_flux, (edge, edge_left_right[edge]))
+
+@inl get_centered_tracer_flux_adj_flux(edge, (left, right), q, ∂flux, k) =
+    ∂flux[k, edge] * (q[k, left] + q[k, right]) / 2
+
+@inl get_centered_tracer_flux_adj_flux(edge, (left, right), q, ∂flux) =
+    ∂flux[edge] * (q[left] + q[right]) / 2
+
+centered_tracer_flux_adj_tracer(vsphere) = @lhs (; primal_edge, primal_deg) = vsphere
+
+@inl centered_tracer_flux_adj_tracer((; primal_edge, primal_deg), cell::Integer) =
+    Fix(get_centered_tracer_flux_adj_tracer,
+        (cell, primal_edge[cell], primal_deg[cell]))
+
 @inl get_half_sum((a,b,c), z) = (z[a] + z[b] + z[c]) / 2
 @inl get_half_sum((a,b,c), z, k) = (z[k, a] + z[k, b] + z[k, c]) / 2
 

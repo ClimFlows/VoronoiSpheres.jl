@@ -8,6 +8,14 @@
 
 ## Change Log
 
+### v0.1.10
+
+* Add `CenteredTracerFlux` and its discrete adjoint.
+
+### v0.1.9
+
+* Specialize two-input operator loops and support Enzyme adjoints on CUDA arrays.
+
 ### v0.1.8
 
 * Accept integer index types used by GPU loops in linear Voronoi stencils.

@@ -5,7 +5,7 @@ using Enzyme.EnzymeRules: AugmentedReturn, RevConfigWidth, overwritten, runtime_
 import Enzyme.EnzymeRules: augmented_primal, reverse
 using VoronoiSpheres.Operators: VoronoiOperator, apply!, apply_internal!, apply_adj!
 
-const Field = Union{Vector{<:AbstractFloat},Matrix{<:AbstractFloat}}
+const Field = Union{AbstractVector{<:AbstractFloat},AbstractMatrix{<:AbstractFloat}}
 const Input = Union{Const{<:Field},Duplicated{<:Field}}
 
 inactive(config, x::Duplicated) = runtime_activity(config) && x.val === x.dval

@@ -48,6 +48,7 @@ end
     test_enzyme_operator(Ops.SquaredCovector(mesh), q, u)
     test_enzyme_operator(Ops.CenteredFlux(mesh), u, q, u)
     test_enzyme_operator(Ops.CenteredFlux(mesh), u, q, u; active=(false, true))
+    test_enzyme_operator(Ops.CenteredTracerFlux(mesh), u, u, q)
     test_enzyme_operator(Ops.DivCenteredFlux(mesh, setminus!), q, q, u)
     test_enzyme_operator(Ops.EnergyTRiSK(mesh, addto!), u, u, randn(rng, size(u)))
 

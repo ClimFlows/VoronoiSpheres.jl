@@ -27,6 +27,30 @@ end
 
 const Ints{N} = NTuple{N, Int32}
 
+@gen get_centered_tracer_flux_adj_tracer(
+    cell, edges::Ints{N}, degree, flux, ∂flux, k,
+) where {N} = quote
+    result = zero(eltype(flux))
+    @unroll for e = 1:$N
+        if e <= degree
+            result += flux[k, edges[e]] * ∂flux[k, edges[e]]
+        end
+    end
+    result / 2
+end
+
+@gen get_centered_tracer_flux_adj_tracer(
+    cell, edges::Ints{N}, degree, flux, ∂flux,
+) where {N} = quote
+    result = zero(eltype(flux))
+    @unroll for e = 1:$N
+        if e <= degree
+            result += flux[edges[e]] * ∂flux[edges[e]]
+        end
+    end
+    result / 2
+end
+
 # for docstrings
 const OPTIONAL = "optional, returns only relevant fields as a named tuple"
 const WRT = "with respect to the unit sphere"
