@@ -31,7 +31,7 @@ $(DUAL2FORM(:qv))
 $(INB(:average_iv_form, :avg))
 """
 average_iv_form(vsphere) = @lhs (; dual_vertex, Avi) = vsphere
-@inl average_iv_form((; dual_vertex, Avi), ij::Int) = Fix(sum_weighted, (dual_vertex[ij], Avi[ij]))
+@inl average_iv_form((; dual_vertex, Avi), ij::Integer) = Fix(sum_weighted, (dual_vertex[ij], Avi[ij]))
 
 """
     vsphere = average_vi_form(vsphere) # $OPTIONAL
@@ -47,7 +47,7 @@ $(INB(:average_vi_form, :avg))
 """
 average_vi_form(vsphere) = @lhs (; Aiv, primal_vertex) = vsphere
 
-@inl average_vi_form((; Aiv, primal_vertex), ij::Int) =
+@inl average_vi_form((; Aiv, primal_vertex), ij::Integer) =
     Fix(sum_weighted, (primal_vertex[ij], Aiv[ij]))
 
 """
@@ -65,7 +65,7 @@ $(INB(:average_ve, :avg))
 """
 average_ve(vsphere) = @lhs (; edge_down_up) = vsphere
 
-@inl average_ve(vsphere, ij::Int) =
+@inl average_ve(vsphere, ij::Integer) =
     Fix(get_average, vsphere.edge_down_up[ij])
 
 """
@@ -83,7 +83,7 @@ $(INB(:average_ev_form, :avg))
 """
 average_ev_form(vsphere) = @lhs (; dual_edge) = vsphere
 
-@inl average_ev_form(vsphere, ij::Int) = Fix(get_half_sum, (vsphere.dual_edge[ij],))
+@inl average_ev_form(vsphere, ij::Integer) = Fix(get_half_sum, (vsphere.dual_edge[ij],))
 
 #========================= divergence (2-form) =======================#
 
@@ -139,7 +139,7 @@ $(INB(:gradient, :gradcov))
 """
 gradient(vsphere) = @lhs (; edge_left_right) = vsphere
 
-@inl gradient(vsphere, ij::Int) =
+@inl gradient(vsphere, ij::Integer) =
     Fix(get_difference, vsphere.edge_left_right[ij])
 
 #===================== grad ⟂ =====================#
@@ -158,7 +158,7 @@ $(CONTRA(:flux)) `flux` is numerically non-divergent.
 $(INB(:gradperp, :grad))
 """
 gradperp(vsphere) = @lhs (; edge_down_up) = vsphere
-@inl gradperp(vsphere, ij::Int) =
+@inl gradperp(vsphere, ij::Integer) =
     Fix(get_difference, vsphere.edge_down_up[ij])
 
 #=========================== TRiSK ======================#

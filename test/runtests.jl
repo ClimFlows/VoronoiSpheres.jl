@@ -34,6 +34,15 @@ sphere = VoronoiSphere(reader; prec = choices.precision)
 
 include("voronoi.jl")
 
+@testset "GPU-style stencil indices" begin
+    for stencil in (Stencils.average_iv_form, Stencils.average_vi_form,
+                    Stencils.average_ve, Stencils.average_ev_form,
+                    Stencils.gradient, Stencils.gradperp)
+        data = stencil(sphere)
+        @test stencil(data, UInt32(1)) === stencil(data, 1)
+    end
+end
+
 @testset "VoronoiSphere" begin
     levels = 1:8
     qi = [z for k in levels, (x,y,z) in sphere.xyz_i]
