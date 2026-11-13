@@ -1,7 +1,7 @@
 name = "VoronoiSpheres"
 uuid = "75509e46-8d8c-4f7e-9072-0d95c5edd9e4"
 authors = ["Thomas Dubos & contributors"]
-version = "0.1.6"
+version = "0.1.7"
 
 [deps]
 CFDomains = "3699aaca-035b-4155-96ec-eecb526248de"
@@ -13,16 +13,19 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [weakdeps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
 Mooncake = "da2b9cff-9c12-43a0-ae48-6db2b0edb7d6"
 
 [extensions]
 VoronoiSpheresAdaptExt = ["Adapt"]
+VoronoiSpheresEnzymeExt = ["Enzyme"]
 VoronoiSpheresMooncakeExt = ["Mooncake"]
 
 [compat]
 Adapt = "4"
+Enzyme = "0.13.218"
 MacroTools = "0.5"
-CFDomains = "0.5.1"
+CFDomains = "0.5.2"
 ManagedLoops = "0.1.11"
 Mooncake = "0.5"
 PackageExtensionCompat = "1"

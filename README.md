@@ -8,6 +8,12 @@
 
 ## Change Log
 
+### v0.1.7
+
+* Add reverse Enzyme rules for Voronoi operators with dense CPU vectors and
+  matrices, using the same discrete adjoints as Mooncake. The Enzyme rules
+  require the output buffer to be disjoint from the input buffers.
+
 ### v0.1
 
 * extracted from CFDomains v0.4.1
