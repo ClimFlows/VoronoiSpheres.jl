@@ -124,6 +124,7 @@ function test_voronoi_ops(sphere, alloc)
     test_op(ucov, tmp_i, Ops.SquaredCovector(sphere))
     # Bilinear VoronoiOperator{1,2}
     test_op(q, ucov, tmp_e, Ops.CenteredFlux(sphere))
+    test_op(ucov, q, tmp_e, Ops.CenteredTracerFlux(sphere))
     test_op(qe, ucov, tmp_e, Ops.EnergyTRiSK(sphere))
     test_op(q, ucov, tmp_i, Ops.DivCenteredFlux(sphere))
     test_op(q, r, tmp_e, Ops.MulGradient(sphere))

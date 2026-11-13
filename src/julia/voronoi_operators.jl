@@ -85,8 +85,11 @@ end
 function apply_adj!(∂out, mgr, op::VoronoiOperator{1,1}, ∂in, extras)
     apply_adj_internal!(∂out, mgr, op, ∂in, extras)
     action! = adj_action_out(op.action!)
-    @inb for i in eachindex(∂out)
-        action!(∂out, i)
+    @with mgr,
+    let irange = eachindex(∂out)
+        @inb for i in irange
+            action!(∂out, i)
+        end
     end
 end
 
@@ -253,8 +256,11 @@ end
 function apply_adj!(∂out, mgr, op::VoronoiOperator{1,2}, ∂in1, ∂in2, extras)
     apply_adj_internal!(∂out, mgr, op, ∂in1, ∂in2, extras)
     action! = adj_action_out(op.action!)
-    @inb for i in eachindex(∂out)
-        action!(∂out, i)
+    @with mgr,
+    let irange = eachindex(∂out)
+        @inb for i in irange
+            action!(∂out, i)
+        end
     end
 end
 
@@ -278,6 +284,37 @@ end
 @inline function apply_adj_internal!(∂F, mgr, op::CenteredFlux, ∂m, ∂ucov, (m, ucov))
     loop_simple(∂m, mgr, adj_action_in(op.action!), op, Stencils.dot_product_form, ucov, ∂F)
     loop_simple(∂ucov, mgr, adj_action_in(op.action!), op, Stencils.centered_flux, m, ∂F)
+end
+
+#========== Centered tracer flux ===========#
+
+"""
+    op! = CenteredTracerFlux(vsphere, [action!])
+    op!(flux_tracer, mgr, flux, tracer)
+
+Multiply an edge flux by the centered average of a cell-centered tracer.
+"""
+struct CenteredTracerFlux{
+    Action, VI2<:VTI{2}, N6, VI6<:VTI{N6}, VI<:AbstractVector{<:Integer},
+} <: VoronoiOperator{1,2}
+    action!::Action
+    edge_left_right::VI2
+    primal_edge::VI6
+    primal_deg::VI
+end
+
+@inline function apply_internal!(output, mgr, op::CenteredTracerFlux, flux, tracer)
+    loop_simple(output, mgr, op.action!, op, Stencils.centered_tracer_flux, flux, tracer)
+    return flux, tracer
+end
+
+@inline function apply_adj_internal!(∂output, mgr, op::CenteredTracerFlux,
+                                     ∂flux, ∂tracer, (flux, tracer))
+    action! = adj_action_in(op.action!)
+    loop_simple(∂flux, mgr, action!, op, Stencils.centered_tracer_flux_adj_flux,
+                tracer, ∂output)
+    loop_simple(∂tracer, mgr, action!, op, Stencils.centered_tracer_flux_adj_tracer,
+                flux, ∂output)
 end
 
 #========== Energy-conserving TRiSK ===========#
@@ -387,6 +424,32 @@ end
     return nothing
 end
 
+@inline function loop_simple(::Val{2}, output, mgr, action!, op, stencil, input1)
+    @with mgr,
+    let (krange, irange) = axes(output)
+        @inb for i in irange
+            st = stencil(op, i)
+            @vec for k in krange
+                action!(output, st(input1, k), k, i)
+            end
+        end
+    end
+    return nothing
+end
+
+@inline function loop_simple(::Val{2}, output, mgr, action!, op, stencil, input1, input2)
+    @with mgr,
+    let (krange, irange) = axes(output)
+        @inb for i in irange
+            st = stencil(op, i)
+            @vec for k in krange
+                action!(output, st(input1, input2, k), k, i)
+            end
+        end
+    end
+    return nothing
+end
+
 @inline function loop_simple(::Val{3}, output, mgr, action!, op, stencil, inputs...)
     nl = Int32(size(output,1)*size(output,2)) # merged axis
     @with mgr, 
@@ -396,6 +459,21 @@ end
             @vec for l in lrange
                 k = MergedIndex(l, nl)
                 action!(output, st(inputs..., k), k, i)
+            end
+        end
+    end
+    return nothing
+end
+
+@inline function loop_simple(::Val{3}, output, mgr, action!, op, stencil, input1, input2)
+    nl = Int32(size(output,1)*size(output,2)) # merged axis
+    @with mgr,
+    let (lrange, irange) = (1:nl, axes(output, 3))
+        @inb for i in irange
+            st = stencil(op, i)
+            @vec for l in lrange
+                k = MergedIndex(l, nl)
+                action!(output, st(input1, input2, k), k, i)
             end
         end
     end

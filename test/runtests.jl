@@ -69,6 +69,21 @@ end
     test_voronoi_ops(sphere, n -> randn(choices.precision, 16, n))
 end
 
+@testset "3D operator array layout" begin
+    F = choices.precision
+    ni, ne = length(sphere.xyz_i), length(sphere.xyz_e)
+    mass = randn(F, 2, 3, ni)
+    ucov = randn(F, 2, 3, ne)
+    flux = similar(ucov)
+    expected = similar(ucov, F, (6, ne))
+
+    Ops.CenteredFlux(sphere)(flux, nothing, mass, ucov)
+    Ops.CenteredFlux(sphere)(expected, nothing,
+                             reshape(mass, 6, ni), reshape(ucov, 6, ne))
+
+    @test flux ≈ reshape(expected, size(flux))
+end
+
 include("enzyme.jl")
 
 function f1(cc, a, g) 
