@@ -15,10 +15,17 @@ cotangent(_, x::Const) = make_zero(x.val)
 saved_input(x, overwritten) = overwritten ? copy(x) : x
 saved_input(::Nothing, _) = nothing
 
+function check_aliasing(output, input)
+    Base.mightalias(output, input) &&
+        throw(ArgumentError("Enzyme Voronoi adjoints require the output to be disjoint from the inputs"))
+    return nothing
+end
+
 function augmented_primal(
     config::RevConfigWidth{1}, ::Const{typeof(apply!)}, ::Type{Const{Nothing}},
     output::Duplicated{<:Field}, mgr::Const, op::Const{<:VoronoiOperator{1,1}}, input::Input,
 )
+    check_aliasing(output.val, input.val)
     extra = apply_internal!(output.val, mgr.val, op.val, input.val)
     tape = saved_input(extra, overwritten(config)[5])
     return AugmentedReturn(nothing, nothing, tape)
@@ -39,6 +46,8 @@ function augmented_primal(
     output::Duplicated{<:Field}, mgr::Const, op::Const{<:VoronoiOperator{1,2}},
     input1::Input, input2::Input,
 )
+    check_aliasing(output.val, input1.val)
+    check_aliasing(output.val, input2.val)
     extras = apply_internal!(output.val, mgr.val, op.val, input1.val, input2.val)
     tape = map(saved_input, extras, overwritten(config)[5:6])
     return AugmentedReturn(nothing, nothing, tape)

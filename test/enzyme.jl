@@ -52,6 +52,11 @@ end
     test_enzyme_operator(Ops.EnergyTRiSK(mesh, addto!), u, u, randn(rng, size(u)))
 
     op = Ops.CenteredFlux(mesh)
+    alias = Duplicated(copy(u), zero(u))
+    @test_throws ArgumentError autodiff(Reverse, Ops.apply!, EConst,
+        alias, EConst(nothing), EConst(op), EConst(q), alias)
+    @test alias.val == u
+
     q0, u0 = copy(q), copy(u)
     dq, du, seed = zero(q), zero(u), randn(rng, size(u))
     autodiff(Reverse, overwrite_input!, EConst,
